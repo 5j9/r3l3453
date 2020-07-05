@@ -1,0 +1,5 @@
+[tool.release]
+version_paths = [
+    'release.py:__version__',
+    'setup.py:version',
+]
