@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-__version__ = '0.dev0'
+__version__ = '0.1'
 
 from logging import warning
 from re import search
