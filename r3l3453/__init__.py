@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-__version__ = '0.1.dev0'
+__version__ = '0.dev0'
 
 from logging import warning
 from re import search
@@ -15,7 +15,7 @@ def get_path_vvars() -> list[tuple[Path, str]]:
     with open('pyproject.toml', 'r') as f:
         toml = parse(f.read())
     path_versions = []
-    for path_version in toml['tool']['release']['version_paths']:
+    for path_version in toml['tool']['r3l3453']['version_paths']:
         path, version = path_version.split(':', 1)
         path_versions += (Path(path), version),
     return path_versions

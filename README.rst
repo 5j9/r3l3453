@@ -1,5 +1,5 @@
-This a script I use for semi-automating release cycle on a few of my projects.
-It's not intended for general use.
+`r3l3453` is a small project that I use for semi-automating release cycle on a few of my projects.
+It's not intended for public use.
 
 In short what it does is:
 

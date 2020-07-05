@@ -8,8 +8,8 @@ with open('README.rst', 'r') as fh:
 
 here = abspath(dirname(__file__))
 setup(
-    name='release',
-    version='0.1.dev0',
+    name='r3l3453',
+    version='0.dev0',
     author='5j9',
     author_email='5j9@users.noreply.github.com',
     description=(
@@ -17,8 +17,8 @@ setup(
     license='GNU General Public License v3 (GPLv3)',
     long_description=long_description,
     long_description_content_type='text/x-rst',
-    url='https://github.com/5j9/release',
-    packages=['release'],
+    url='https://github.com/5j9/r3l3453',
+    packages=['r3l3453'],
     python_requires='>=3.9',
     install_requires=['path', 'parver', 'tomlkit'],
     classifiers=[

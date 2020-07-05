@@ -1,5 +1,5 @@
-[tool.release]
+[tool.r3l3453]
 version_paths = [
-    'release/__init__.py:__version__',
+    'r3l3453/__init__.py:__version__',
     'setup.py:version',
 ]
