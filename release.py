@@ -44,15 +44,15 @@ def update_version(
     last_version = None
     for path, var_name in path_vvar_tuples:
         with path.open('r+') as f:
-            content = f.read()
-            old_bytes_version = search(
-                r'\b' + var_name + r'\s*=\s*([\'"])(.*?)\1', content)[2]
+            text = f.read()
+            old_bytes_version: str = search(
+                r'\b' + var_name + r'\s*=\s*([\'"])(.*?)\1', text)[2]
             if old_version is None:
-                old_version = Version.parse(old_bytes_version.decode())
+                old_version = Version.parse(old_bytes_version)
             if new_version is None:
                 new_version = ask_new_version(old_version)
             f.seek(0)
-            f.write(content.replace(old_bytes_version, str(new_version).encode(), 1))
+            f.write(text.replace(old_bytes_version, str(new_version), 1))
             f.truncate()
         assert last_version is None or last_version == new_version, \
             'versions are not equal'
