@@ -41,18 +41,24 @@ def ask_new_version(old_version: Version) -> Version:
 def update_version(
     old_version: Version = None, new_version: Version = None
 ) -> Version:
-    if new_version is None:
-        new_version = ask_new_version(old_version)
     last_version = None
     for path, var_name in path_vvar_tuples:
         with path.open('r+') as f:
-            text = f.read()
-            old_bytes_version: str = search(
-                r'\b' + var_name + r'\s*=\s*([\'"])(.*?)\1', text)[2]
+            text: str = f.read()
             if old_version is None:
-                old_version = Version.parse(old_bytes_version)
+                old_version_match = search(
+                    r'\b' + var_name + r'\s*=\s*([\'"])(.*?)\1', text)
+                old_version = Version.parse(old_version_match[2])
+                s, e = old_version_match.span(2)
+                if new_version is None:
+                    new_version = ask_new_version(old_version)
+                text = text[:s] + str(new_version) + text[e:]
+            else:
+                if new_version is None:
+                    new_version = ask_new_version(old_version)
+                text = text.replace(str(old_version), str(new_version), 1)
             f.seek(0)
-            f.write(text.replace(old_bytes_version, str(new_version), 1))
+            f.write(text)
             f.truncate()
         assert last_version is None or last_version == new_version, \
             'versions are not equal'
