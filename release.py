@@ -16,7 +16,7 @@ def get_path_vvars() -> list[Path, str]:
     path_versions = []
     for path_version in toml['tool']['release']['version_paths']:
         path, version = path_version.split(':', 1)
-        path_versions += Path(path), version
+        path_versions += (Path(path), version),
     return path_versions
 
 
