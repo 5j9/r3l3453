@@ -49,7 +49,7 @@ def get_release_type(last_version) -> Literal[0, 1, 2]:
     return 2
 
 
-def get_new_version(old_version: Version) -> Version:
+def get_release_version(old_version: Version) -> Version:
     """Return the next version according to git log."""
     assert old_version.is_devrelease
     undev = old_version.base_version()
@@ -70,7 +70,7 @@ def update_version(
     """Update all versions specified in config."""
     last_version = None
     for path, var_name in path_vvar_tuples:
-        with path.open('r+') as f:
+        with path.open('r+', newline='\n') as f:
             text: str = f.read()
             if old_version is None:
                 old_version_match = search(
@@ -78,11 +78,11 @@ def update_version(
                 old_version = Version.parse(old_version_match[2])
                 s, e = old_version_match.span(2)
                 if new_version is None:
-                    new_version = get_new_version(old_version)
+                    new_version = get_release_version(old_version)
                 text = text[:s] + str(new_version) + text[e:]
             else:
                 if new_version is None:
-                    new_version = get_new_version(old_version)
+                    new_version = get_release_version(old_version)
                 text = text.replace(str(old_version), str(new_version), 1)
             f.seek(0)
             f.write(text)
@@ -102,7 +102,7 @@ def commit_and_tag_version_change(release_version: Version):
     check_call(('git', 'tag', '-a', f'v{release_version}', '-m', ''))
 
 
-if __name__ == '__main__':
+def main():
     assert check_output(('git', 'branch', '--show-current')) == b'master\n'
     assert check_output(('git', 'status', '--porcelain')) == b''
 
@@ -115,7 +115,7 @@ if __name__ == '__main__':
         check_call(('twine', 'upload', 'dist/*'))
     finally:
         for d in ('dist', 'build'):
-            Path(d).rmtree()
+            Path(d).rmtree_p()
 
     # prepare next dev0
     new_dev_version = release_version.bump_release(index=2).bump_dev()
@@ -123,3 +123,7 @@ if __name__ == '__main__':
     commit(new_dev_version)
 
     check_call(('git', 'push'))
+
+
+if __name__ == '__main__':
+    main()
