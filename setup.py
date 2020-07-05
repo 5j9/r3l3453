@@ -19,6 +19,8 @@ setup(
     long_description_content_type='text/x-rst',
     url='https://github.com/5j9/r3l3453',
     packages=['r3l3453'],
+    entry_points={
+        'console_scripts': ['r3l3453 = r3l3453.__init__:main']},
     python_requires='>=3.9',
     install_requires=['path', 'parver', 'tomlkit'],
     classifiers=[
