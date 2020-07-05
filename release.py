@@ -41,6 +41,8 @@ def ask_new_version(old_version: Version) -> Version:
 def update_version(
     old_version: Version = None, new_version: Version = None
 ) -> Version:
+    if new_version is None:
+        new_version = ask_new_version(old_version)
     last_version = None
     for path, var_name in path_vvar_tuples:
         with path.open('r+') as f:
@@ -49,8 +51,6 @@ def update_version(
                 r'\b' + var_name + r'\s*=\s*([\'"])(.*?)\1', text)[2]
             if old_version is None:
                 old_version = Version.parse(old_bytes_version)
-            if new_version is None:
-                new_version = ask_new_version(old_version)
             f.seek(0)
             f.write(text.replace(old_bytes_version, str(new_version), 1))
             f.truncate()
