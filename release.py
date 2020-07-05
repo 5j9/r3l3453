@@ -25,17 +25,17 @@ path_vvar_tuples = get_path_vvars()
 
 def ask_new_version(old_version: Version) -> Version:
     assert old_version.is_devrelease
-    major = old_version.bump_release(index=0).base_version()
-    minor = old_version.bump_release(index=1).base_version()
-    patch = old_version.bump_release(index=2).base_version()
+    undev = old_version.base_version()
+    major = undev.bump_release(index=0)
+    minor = undev.bump_release(index=1)
     index = int(input(
         f'Current version is:\n'
         f'  {old_version}\n'
-        'Enter release type:\n'
+        'Enter release version:\n'
         f'   0: major: {major}\n'
         f'   1: minor: {minor}\n'
-        f'   2: patch: {patch}\n'))
-    return (major, minor, patch)[index]
+        f'   2: patch: {undev}\n'))
+    return (major, minor, undev)[index]
 
 
 def update_version(
