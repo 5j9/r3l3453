@@ -46,7 +46,7 @@ def update_version(
         with path.open('r+') as f:
             content = f.read()
             old_bytes_version = search(
-                r'\b' + var_name + r'\b=\s*([\'"])(.*?)\1', content)[2]
+                r'\b' + var_name + r'\s*=\s*([\'"])(.*?)\1', content)[2]
             if old_version is None:
                 old_version = Version.parse(old_bytes_version.decode())
             if new_version is None:
