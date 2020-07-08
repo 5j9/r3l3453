@@ -110,7 +110,7 @@ def get_release_version(
         release_type = get_release_type(old_version)
     if release_type is PATCH:
         return base_version
-    if old_version < Version(1) or release_type is MINOR:
+    if release_type is MINOR or old_version < Version(1):
         # do not change an early development version to a major release
         # that type of change should be more explicit (edit versions).
         return base_version.bump_release(index=1)
