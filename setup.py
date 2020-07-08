@@ -9,7 +9,7 @@ with open('README.rst', 'r') as fh:
 here = abspath(dirname(__file__))
 setup(
     name='r3l3453',
-    version='0.4.0',
+    version='0.5.0',
     author='5j9',
     author_email='5j9@users.noreply.github.com',
     description=(
