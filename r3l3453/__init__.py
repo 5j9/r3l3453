@@ -103,7 +103,6 @@ def get_release_version(
     """Return the next version according to git log."""
     if release_type is DEV:
         return old_version.bump_dev()
-    assert old_version.is_devrelease
     base_version = old_version.base_version()  # removes devN
     if release_type is None:
         release_type = get_release_type(old_version)
