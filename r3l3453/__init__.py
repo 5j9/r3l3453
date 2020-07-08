@@ -149,28 +149,31 @@ def update_versions(
 
 
 def commit(version: Version):
+    args = ('git', 'commit', '--all', f'--message=release: v{version}')
     if SIMULATE is True:
-        print(f'git commit --all --message=release: v{version}')
+        print(' '.join(args))
         return
-    check_call(('git', 'commit', '--all', f'--message=release: v{version}'))
+    check_call(args)
 
 
 def commit_and_tag_version_change(release_version: Version):
     commit(release_version)
+    git_tag = ('git', 'tag', '-a', f'v{release_version}', '-m', '')
     if SIMULATE is True:
-        print(f"git tag -a f'v{release_version}' -m ''")
+        print(' '.join(git_tag))
         return
-    check_call(('git', 'tag', '-a', f'v{release_version}', '-m', ''))
+    check_call(git_tag)
 
 
 def upload_to_pypi():
+    setup = ('python', 'setup.py', 'sdist', 'bdist_wheel')
+    twine = ('twine', 'upload', 'dist/*')
     if SIMULATE is True:
-        print('python setup.py sdist bdist_wheel\ntwine upload dist/*\n'
-              'rm -rf dist build')
+        print(f"{' '.join(setup)}\n{' '.join(twine)}")
         return
     try:
-        check_call(('python', 'setup.py', 'sdist', 'bdist_wheel'))
-        check_call(('twine', 'upload', 'dist/*'))
+        check_call(setup)
+        check_call(twine)
     finally:
         for d in ('dist', 'build'):
             Path(d).rmtree_p()
