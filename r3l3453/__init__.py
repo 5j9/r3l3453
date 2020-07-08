@@ -10,6 +10,7 @@ from subprocess import CalledProcessError, check_call, check_output
 
 from parver import Version
 from tomlkit import parse
+from typer import run
 
 
 class ReleaseType(IntEnum):
@@ -136,27 +137,33 @@ def commit_and_tag_version_change(release_version: Version):
     check_call(('git', 'tag', '-a', f'v{release_version}', '-m', ''))
 
 
-def main(release_type: ReleaseType = None):
+def upload_to_pypi():
+    try:
+        check_call(('python', 'setup.py', 'sdist', 'bdist_wheel'))
+        check_call(('twine', 'upload', 'dist/*'))
+    finally:
+        for d in ('dist', 'build'):
+            Path(d).rmtree_p()
+
+
+def main(type: ReleaseType = None, upload: bool = True, push: bool = True):
     assert check_output(('git', 'branch', '--show-current')) == b'master\n'
     assert check_output(('git', 'status', '--porcelain')) == b''
 
     with get_file_versions() as file_versions:
-        release_version = update_versions(file_versions, release_type)
+        release_version = update_versions(file_versions, type)
         commit_and_tag_version_change(release_version)
 
-        try:
-            check_call(('python', 'setup.py', 'sdist', 'bdist_wheel'))
-            check_call(('twine', 'upload', 'dist/*'))
-        finally:
-            for d in ('dist', 'build'):
-                Path(d).rmtree_p()
+        if upload is True:
+            upload_to_pypi()
 
         # prepare next dev0
         new_dev_version = update_versions(file_versions, DEV)
         commit(new_dev_version)
 
-    check_call(('git', 'push'))
+    if push is True:
+        check_call(('git', 'push'))
 
 
 if __name__ == '__main__':
-    main()
+    run(main)
