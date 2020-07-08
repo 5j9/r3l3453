@@ -93,8 +93,9 @@ def get_release_type(last_version) -> ReleaseType:
     except CalledProcessError:
         warning('tag `v%s` not found', last_version)
         try:
-            last_version_tag = check_output(
-                ('git', 'describe', '--match', 'v[0-9]*', '--abbrev=0'))[:-1]
+            last_version_tag: str = check_output(
+                ('git', 'describe', '--match', 'v[0-9]*', '--abbrev=0')
+            )[:-1].decode()
             warning('using `%s` instead', last_version_tag)
             log = check_output(
                 ('git', 'log', '--format=%B', f'{last_version_tag}..@'))
