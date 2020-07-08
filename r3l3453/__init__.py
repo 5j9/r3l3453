@@ -26,6 +26,9 @@ MINOR = ReleaseType.MINOR
 MAJOR = ReleaseType.MAJOR
 
 
+SIMULATE = False
+
+
 class FileVersion:
     """Wraps around a version variable in a file. Caches reads."""
     __slots__ = '_file', '_offset', '_version', '_trail'
@@ -33,6 +36,10 @@ class FileVersion:
     def __init__(self, path: Path, variable: str):
         file = self._file = path.open('r+', newline='\n')
         text = file.read()
+        if SIMULATE is True:
+            print(f'reading {path}')
+            from io import StringIO
+            self._file = StringIO(text)
         match = search(r'\b' + variable + r'\s*=\s*([\'"])(.*?)\1', text)
         self._offset, end = match.span(2)
         self._trail = text[end:]
@@ -114,6 +121,8 @@ def get_release_version(
     base_version = old_version.base_version()  # removes devN
     if release_type is None:
         release_type = get_release_type(old_version)
+        if SIMULATE is True:
+            print(f'get_release_type returned {release_type}')
     if release_type is PATCH:
         return base_version
     if release_type is MINOR or old_version < Version(1):
@@ -131,20 +140,32 @@ def update_versions(
     for file_version in file_versions:
         file_version.version = get_release_version(
             file_version.version, release_type)
-    # noinspection PyUnboundLocalVariable
+    if SIMULATE is True:  # noinspection PyUnboundLocalVariable
+        print(f'change file versions from {file_version.version}'
+              f' to {release_type}')
     return file_version.version
 
 
 def commit(version: Version):
+    if SIMULATE is True:
+        print('git commit -all --message=release: v{version}')
+        return
     check_call(('git', 'commit', '--all', f'--message=release: v{version}'))
 
 
 def commit_and_tag_version_change(release_version: Version):
     commit(release_version)
+    if SIMULATE is True:
+        print(f"git tag -a f'v{release_version}' -m ''")
+        return
     check_call(('git', 'tag', '-a', f'v{release_version}', '-m', ''))
 
 
 def upload_to_pypi():
+    if SIMULATE is True:
+        print('python setup.py sdist bdist_wheel\ntwine upload dist/*\n'
+              'rm -rf dist build')
+        return
     try:
         check_call(('python', 'setup.py', 'sdist', 'bdist_wheel'))
         check_call(('twine', 'upload', 'dist/*'))
@@ -153,7 +174,12 @@ def upload_to_pypi():
             Path(d).rmtree_p()
 
 
-def main(type: ReleaseType = None, upload: bool = True, push: bool = True):
+def main(
+    type: ReleaseType = None, upload: bool = True, push: bool = True,
+    simulate: bool = False,
+):
+    global SIMULATE
+    SIMULATE = simulate
     assert check_output(('git', 'branch', '--show-current')) == b'master\n'
     assert check_output(('git', 'status', '--porcelain')) == b''
 
@@ -169,7 +195,10 @@ def main(type: ReleaseType = None, upload: bool = True, push: bool = True):
         commit(new_dev_version)
 
     if push is True:
-        check_call(('git', 'push'))
+        if SIMULATE is True:
+            print('git push')
+        else:
+            check_call(('git', 'push'))
 
 
 def console_scripts_entry_point():
