@@ -4,10 +4,10 @@ __version__ = '0.4.0'
 from contextlib import contextmanager
 from enum import Enum
 from logging import warning
-from pathlib import Path
 from re import search
 from subprocess import CalledProcessError, check_call, check_output
 
+from path import Path
 from parver import Version
 from tomlkit import parse
 from typer import run

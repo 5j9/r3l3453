@@ -23,7 +23,7 @@ setup(
         'console_scripts': [
             'r3l3453 = r3l3453.__init__:console_scripts_entry_point']},
     python_requires='>=3.9',
-    install_requires=['parver', 'tomlkit', 'typer'],
+    install_requires=['parver', 'path', 'tomlkit', 'typer'],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
