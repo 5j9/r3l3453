@@ -9,3 +9,5 @@ In short what it does is:
 * release to PyPI
 * bump the version again to dev version
 * push changes to repository
+
+There is a ``--simulate`` cli option which allows one to see what is going to happen.
