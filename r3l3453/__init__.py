@@ -138,13 +138,13 @@ def update_versions(
     release_type: ReleaseType = None,
 ) -> Version:
     """Update all versions specified in config."""
-    release_version = get_release_version(
-        file_versions[0].version, release_type)
+    file_version.version = release_version = get_release_version(
+        (old_version := (file_version := file_versions[0]).version),
+        release_type)
+    if SIMULATE is True:  # noinspection PyUnboundLocalVariable
+        print(f'change file versions from {old_version} to {release_version}')
     for file_version in file_versions[1:]:
         file_version.version = release_version
-    if SIMULATE is True:  # noinspection PyUnboundLocalVariable
-        print(f'change file versions from {file_version.version}'
-              f' to {release_version}')
     return release_version
 
 
