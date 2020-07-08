@@ -144,8 +144,8 @@ def update_versions(
         file_version.version = release_version
     if SIMULATE is True:  # noinspection PyUnboundLocalVariable
         print(f'change file versions from {file_version.version}'
-              f' to {release_type}')
-    return file_version.version
+              f' to {release_version}')
+    return release_version
 
 
 def commit(version: Version):
