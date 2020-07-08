@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-__version__ = '0.3.0'
+__version__ = '0.3.1.dev0'
 
 from contextlib import contextmanager
-from enum import IntEnum
+from enum import Enum
 from logging import warning
 from pathlib import Path
 from re import search
@@ -13,11 +13,11 @@ from tomlkit import parse
 from typer import run
 
 
-class ReleaseType(IntEnum):
-    DEV = 3
-    PATCH = 2
-    MINOR = 1
-    MAJOR = 0
+class ReleaseType(Enum):
+    DEV = 'dev'
+    PATCH = 'patch'
+    MINOR = 'minor'
+    MAJOR = 'major'
 
 
 DEV = ReleaseType.DEV
@@ -109,11 +109,11 @@ def get_release_version(
         release_type = get_release_type(old_version)
     if release_type is PATCH:
         return base_version
-    if old_version < Version(1):
+    if old_version < Version(1) or release_type is MINOR:
         # do not change an early development version to a major release
-        # that type of change should be more explicit.
+        # that type of change should be more explicit (edit versions).
         return base_version.bump_release(index=1)
-    return base_version.bump_release(index=release_type)
+    return base_version.bump_release(index=0)
 
 
 def update_versions(
@@ -165,5 +165,5 @@ def main(type: ReleaseType = None, upload: bool = True, push: bool = True):
         check_call(('git', 'push'))
 
 
-if __name__ == '__main__':
+def console_scripts_entry_point():
     run(main)

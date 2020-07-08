@@ -1,5 +1,5 @@
-from r3l3453 import main
+from r3l3453 import console_scripts_entry_point
 
 
 if __name__ == '__main__':
-    main()
+    console_scripts_entry_point()

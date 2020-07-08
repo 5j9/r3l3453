@@ -9,7 +9,7 @@ with open('README.rst', 'r') as fh:
 here = abspath(dirname(__file__))
 setup(
     name='r3l3453',
-    version='0.3.0',
+    version='0.3.1.dev0',
     author='5j9',
     author_email='5j9@users.noreply.github.com',
     description=(
@@ -20,7 +20,8 @@ setup(
     url='https://github.com/5j9/r3l3453',
     packages=['r3l3453'],
     entry_points={
-        'console_scripts': ['r3l3453 = r3l3453.__init__:main']},
+        'console_scripts': [
+            'r3l3453 = r3l3453.__init__:console_scripts_entry_point']},
     python_requires='>=3.9',
     install_requires=['parver', 'tomlkit', 'typer'],
     classifiers=[
