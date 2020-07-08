@@ -58,10 +58,16 @@ class FileVersion:
 def get_file_versions() -> list[FileVersion]:
     with open('pyproject.toml', 'r') as f:
         toml = parse(f.read())
+
     append = (file_versions := []).append
     for path_version in toml['tool']['r3l3453']['version_paths']:
         path, variable = path_version.split(':', 1)
         append(FileVersion(Path(path), variable))
+
+    versions = [fv.version for fv in file_versions]
+    assert versions.count(versions[0]) == len(versions),\
+        "file versions don't match"
+
     try:
         yield file_versions
     finally:
