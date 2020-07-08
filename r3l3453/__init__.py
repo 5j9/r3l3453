@@ -95,6 +95,7 @@ def get_release_type(last_version) -> ReleaseType:
         try:
             last_version_tag = check_output(
                 ('git', 'describe', '--match', 'v[0-9]*'))
+            print(last_version_tag)
             warning('using `%s` instead', last_version_tag)
             log = check_output(
                 ('git', 'log', '--format=%B', f'{last_version_tag}..@'))
@@ -117,7 +118,7 @@ def get_release_version(
     if release_type is DEV:
         if old_version.is_devrelease:
             return old_version.bump_dev()
-        return old_version.bump_release(2).bump_dev()
+        return old_version.bump_release(index=2).bump_dev()
     base_version = old_version.base_version()  # removes devN
     if release_type is None:
         release_type = get_release_type(old_version)
