@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-__version__ = '0.5.0.dev0'
+__version__ = '0.5.1.dev0'
 
 from contextlib import contextmanager
 from enum import Enum
@@ -102,7 +102,9 @@ def get_release_version(
 ) -> Version:
     """Return the next version according to git log."""
     if release_type is DEV:
-        return old_version.bump_dev()
+        if old_version.is_devrelease:
+            return old_version.bump_dev()
+        return old_version.bump_release(2).bump_dev()
     base_version = old_version.base_version()  # removes devN
     if release_type is None:
         release_type = get_release_type(old_version)
