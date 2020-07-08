@@ -150,7 +150,7 @@ def update_versions(
 
 def commit(version: Version):
     if SIMULATE is True:
-        print('git commit -all --message=release: v{version}')
+        print(f'git commit -all --message=release: v{version}')
         return
     check_call(('git', 'commit', '--all', f'--message=release: v{version}'))
 
