@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-__version__ = '0.6.1'
+__version__ = '0.6.2.dev0'
 
 from contextlib import contextmanager
 from enum import Enum
