@@ -203,7 +203,7 @@ def main(
         if SIMULATE is True:
             print('git push')
         else:
-            check_call(('git', 'push'))
+            check_call(('git', 'push', '--follow-tags'))
 
 
 def console_scripts_entry_point():
