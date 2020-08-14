@@ -54,7 +54,6 @@ class FileVersion:
         (file := self._file).seek(self._offset)
         file.write(str(version) + self._trail)
         file.truncate()
-        file.flush()
         self._version = version
 
     def close(self):
