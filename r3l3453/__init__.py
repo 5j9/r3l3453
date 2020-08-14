@@ -137,7 +137,7 @@ def update_versions(
     file_versions: list[FileVersion],
     release_type: ReleaseType = None,
 ) -> Version:
-    """Update all versions specified in config."""
+    """Update all versions specified in config + CHANGELOG.rst."""
     file_version.version = release_version = get_release_version(
         (old_version := (file_version := file_versions[0]).version),
         release_type)
@@ -179,6 +179,31 @@ def upload_to_pypi():
             Path(d).rmtree_p()
 
 
+def update_changelog(release_version: Version):
+    """Change the title of initial "Unreleased" section to the new version.
+
+    Note: "Unreleased" and "CHANGELOG" are the recommendations of
+        https://keepachangelog.com/ .
+    """
+    try:
+        with open('CHANGELOG.rst', 'rb+') as f:
+            changelog = f.read()
+            if changelog[:22] != b'Unreleased\n----------\n':
+                return
+            if SIMULATE is True:
+                print(
+                    'Replace the "Unreleased" section of "CHANGELOG.rst" with '
+                    f'v{release_version}')
+                return
+            ver_bytes = f'v{release_version}'.encode()
+            f.seek(0)
+            f.write(b'%b\n%b\n%b' % (
+                ver_bytes, b'-' * len(ver_bytes), changelog[22:]))
+    except FileNotFoundError:
+        if SIMULATE is True:
+            print('CHANGELOG.rst not found')
+
+
 def main(
     type: ReleaseType = None, upload: bool = True, push: bool = True,
     simulate: bool = False,
@@ -190,6 +215,7 @@ def main(
 
     with get_file_versions() as file_versions:
         release_version = update_versions(file_versions, type)
+        update_changelog(release_version)
         commit_and_tag_version_change(release_version)
 
         if upload is True:
