@@ -194,6 +194,7 @@ def update_changelog(release_version: Version):
             f.seek(0)
             f.write(b'%b\n%b\n%b' % (
                 ver_bytes, b'-' * len(ver_bytes), changelog[22:]))
+            f.truncate()
     except FileNotFoundError:
         if SIMULATE is True:
             print('CHANGELOG.rst not found')
