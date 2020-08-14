@@ -82,26 +82,22 @@ def get_file_versions() -> list[FileVersion]:
             fv.close()
 
 
-def get_release_type(last_version) -> ReleaseType:
+def get_release_type() -> ReleaseType:
     """Return 0 for major, 1 for minor and 2 for a patch release.
 
     According to https://www.conventionalcommits.org/en/v1.0.0/ .
     """
     try:
+        last_version_tag: str = check_output(
+            ('git', 'describe', '--match', 'v[0-9]*', '--abbrev=0')
+        )[:-1].decode()
+        if SIMULATE is True:
+            print(f'{last_version_tag=}')
         log = check_output(
-            ('git', 'log', '--format=%B', f'v{last_version}..@'))
-    except CalledProcessError:
-        warning('tag `v%s` not found', last_version)
-        try:
-            last_version_tag: str = check_output(
-                ('git', 'describe', '--match', 'v[0-9]*', '--abbrev=0')
-            )[:-1].decode()
-            warning('using `%s` instead', last_version_tag)
-            log = check_output(
-                ('git', 'log', '--format=%B', f'{last_version_tag}..@'))
-        except CalledProcessError:  # there are no version tags
-            warning('no version tags found\nchecking all commits')
-            log = check_output(('git', 'log', '--format=%B'))
+            ('git', 'log', '--format=%B', f'{last_version_tag}..@'))
+    except CalledProcessError:  # there are no version tags
+        warning('no version tags found\nchecking all commits')
+        log = check_output(('git', 'log', '--format=%B'))
     if rb'!:' in log:
         return MAJOR
     if b'\nBREAKING CHANGE:' in log:
@@ -112,21 +108,21 @@ def get_release_type(last_version) -> ReleaseType:
 
 
 def get_release_version(
-    old_version: Version, release_type: ReleaseType = None
+    current_version: Version, release_type: ReleaseType = None
 ) -> Version:
     """Return the next version according to git log."""
     if release_type is DEV:
-        if old_version.is_devrelease:
-            return old_version.bump_dev()
-        return old_version.bump_release(index=2).bump_dev()
-    base_version = old_version.base_version()  # removes devN
+        if current_version.is_devrelease:
+            return current_version.bump_dev()
+        return current_version.bump_release(index=2).bump_dev()
     if release_type is None:
-        release_type = get_release_type(old_version)
+        release_type = get_release_type()
         if SIMULATE is True:
             print(f'get_release_type returned {release_type}')
+    base_version = current_version.base_version()  # removes devN
     if release_type is PATCH:
         return base_version
-    if release_type is MINOR or old_version < Version(1):
+    if release_type is MINOR or current_version < Version(1):
         # do not change an early development version to a major release
         # that type of change should be more explicit (edit versions).
         return base_version.bump_release(index=1)
@@ -139,10 +135,10 @@ def update_versions(
 ) -> Version:
     """Update all versions specified in config + CHANGELOG.rst."""
     file_version.version = release_version = get_release_version(
-        (old_version := (file_version := file_versions[0]).version),
+        (current_ver := (file_version := file_versions[0]).version),
         release_type)
     if SIMULATE is True:  # noinspection PyUnboundLocalVariable
-        print(f'change file versions from {old_version} to {release_version}')
+        print(f'change file versions from {current_ver} to {release_version}')
     for file_version in file_versions[1:]:
         file_version.version = release_version
     return release_version
