@@ -96,7 +96,7 @@ def get_release_type() -> ReleaseType:
         log = check_output(
             ('git', 'log', '--format=%B', f'{last_version_tag}..@'))
     except CalledProcessError:  # there are no version tags
-        warning('no version tags found\nchecking all commits')
+        warning('No version tags found. Checking all commits...')
         log = check_output(('git', 'log', '--format=%B'))
     if rb'!:' in log:
         return MAJOR
