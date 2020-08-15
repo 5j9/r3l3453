@@ -201,10 +201,14 @@ def update_changelog(release_version: Version):
 
 def main(
     type: ReleaseType = None, upload: bool = True, push: bool = True,
-    simulate: bool = False,
+    simulate: bool = False, path: str = None,
 ):
     global SIMULATE
     SIMULATE = simulate
+
+    if path is not None:
+        Path(path).chdir()
+
     assert check_output(('git', 'branch', '--show-current')) == b'master\n'
     assert check_output(('git', 'status', '--porcelain')) == b''
 
