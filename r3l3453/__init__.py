@@ -4,7 +4,7 @@ __version__ = '0.7.1.dev0'
 from contextlib import contextmanager
 from enum import Enum
 from logging import warning
-from re import search
+from re import IGNORECASE, search
 from subprocess import CalledProcessError, check_call, check_output
 
 from path import Path
@@ -93,15 +93,14 @@ def get_release_type() -> ReleaseType:
         if SIMULATE is True:
             print(f'{last_version_tag=}')
         log = check_output(
-            ('git', 'log', '--format=%B', f'{last_version_tag}..@'))
+            ('git', 'log', '--format=%B', '-z', f'{last_version_tag}..@'))
     except CalledProcessError:  # there are no version tags
         warning('No version tags found. Checking all commits...')
         log = check_output(('git', 'log', '--format=%B'))
-    if rb'!:' in log:
+    if search(
+            rb'(?:\A|[\0\n])(?:BREAKING CHANGE[(:]|.*?!:)', log):
         return MAJOR
-    if b'\nBREAKING CHANGE:' in log:
-        return MAJOR
-    if b'\nfeat:' in b'\n' + log:
+    if search(rb'(?:\A|\0)feat[(:]', log, IGNORECASE):
         return MINOR
     return PATCH
 
