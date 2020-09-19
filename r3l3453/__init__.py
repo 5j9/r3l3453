@@ -3,13 +3,13 @@ __version__ = '0.8.1.dev0'
 
 from contextlib import contextmanager
 from enum import Enum
+from json import load
 from logging import warning
 from re import IGNORECASE, search
 from subprocess import CalledProcessError, check_call, check_output
 
 from path import Path
 from parver import Version
-from tomlkit import parse
 from typer import run
 
 
@@ -62,11 +62,11 @@ class FileVersion:
 
 @contextmanager
 def get_file_versions() -> list[FileVersion]:
-    with open('pyproject.toml', 'r') as f:
-        toml = parse(f.read())
+    with open('r3l3453.json', 'r') as f:
+        json_config = load(f)
 
     append = (file_versions := []).append
-    for path_version in toml['tool']['r3l3453']['version_paths']:
+    for path_version in json_config['version_paths']:
         path, variable = path_version.split(':', 1)
         append(FileVersion(Path(path), variable))
 

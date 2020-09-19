@@ -10,8 +10,8 @@ In short what it does is as follows:
 * Bump the version again to dev0 version for the next release.
 * Push changes to repository.
 
-``pyproject.toml`` can be used to specify the location of version variables.
-Refer to the ``pyproject.toml`` of this project to see how it is used.
+``r3l3453.json`` can be used to specify the location of version variables.
+Refer to the ``r3l3453.json`` of this project to see how it is used.
 
 There is a ``--simulate`` cli option which allows one to see what is going to happen.
 
