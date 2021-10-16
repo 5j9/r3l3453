@@ -150,7 +150,7 @@ def commit(version: Version):
     check_call(args)
 
 
-def commit_and_tag_version_change(release_version: Version):
+def commit_and_tag(release_version: Version):
     commit(release_version)
     git_tag = ('git', 'tag', '-a', f'v{release_version}', '-m', '')
     if SIMULATE is True:
@@ -215,7 +215,7 @@ def main(
     with get_file_versions() as file_versions:
         release_version = update_versions(file_versions, type)
         update_changelog(release_version)
-        commit_and_tag_version_change(release_version)
+        commit_and_tag(release_version)
 
         if upload is True:
             upload_to_pypi()

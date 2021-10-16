@@ -23,7 +23,7 @@ setup(
         'console_scripts': [
             'r3l3453 = r3l3453.__init__:console_scripts_entry_point']},
     python_requires='>=3.9',
-    install_requires=['parver', 'path', 'typer'],
+    install_requires=['parver', 'path', 'typer', 'wheel', 'twine'],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
