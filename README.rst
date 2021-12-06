@@ -1,4 +1,4 @@
-`r3l3453` is a small project that I use for semi-automating release cycle on a few of my projects.
+`r3l3453` is a small project that I use for semi-automating release cycle on a few projects of mine.
 
 In short what it does is as follows:
 
