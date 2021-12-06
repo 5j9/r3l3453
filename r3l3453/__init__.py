@@ -33,14 +33,14 @@ class VersionFile:
     """Wraps around a version variable in a file. Caches reads."""
     __slots__ = '_file', '_offset', '_version', '_trail'
 
-    def __init__(self, path: Path, variable: str):
+    def __init__(self, path: Path):
         file = self._file = path.open('r+', newline='\n')
         text = file.read()
         if SIMULATE is True:
             print(f'reading {path}')
             from io import StringIO
             self._file = StringIO(text)
-        match = search(r'\b' + variable + r'\s*=\s*([\'"])(.*?)\1', text)
+        match = search(r'\b__version__\s*=\s*([\'"])(.*?)\1', text)
         self._offset, end = match.span(2)
         self._trail = text[end:]
         self._version = Version.parse(match[2])
@@ -60,14 +60,26 @@ class VersionFile:
         self._file.close()
 
 
+def read_version_path() -> Path:
+    try:
+        with open('setup.cfg', encoding='utf8') as f:
+            setup_cfg = f.read()
+    except FileNotFoundError:
+        msg = 'setup.cfg was not found'
+        if Path('setup.py').exists():
+            msg += '\ntry `setuptools-py2cfg` to convert setup.py to setup.cfg'
+        raise FileNotFoundError(msg)
+    m = search(r'version = attr: (\w+)\.__version__', setup_cfg)
+    if not m:
+        raise RuntimeError(
+            'add `version = attr: package.__version__` to setup.cfg')
+    return Path(m[1]) / '__init__.py'
+
+
 @contextmanager
 def read_version_file() -> AbstractContextManager[VersionFile]:
-    with open('r3l3453.json', 'r') as f:
-        json_config = load(f)
-
-    path, variable = json_config['version_path'].split(':', 1)
-    fv = VersionFile(Path(path), variable)
-
+    version_path = read_version_path()
+    fv = VersionFile(version_path)
     try:
         yield fv
     finally:
@@ -191,6 +203,45 @@ def update_changelog(release_version: Version):
             print('CHANGELOG.rst not found')
 
 
+pyproject_toml = """\
+[build-system]
+requires = [
+    # 46.4.0 is required for handling attr version, see:
+    # https://packaging.python.org/guides/single-sourcing-package-version/
+    "setuptools>=46.4.0",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+"""
+
+
+def check_pyproject_toml():
+    try:
+        with open('pyproject.toml', encoding='utf8') as f:
+            pyproject_toml = f.read()
+    except FileNotFoundError:
+        with open('pyproject.toml', 'w', encoding='utf8'):
+            f.write(pyproject_toml)
+        raise FileNotFoundError('pyproject.toml was not found; sample created')
+    m = search(r'setuptools>=([\d.]+)', pyproject_toml)
+    if not m or (Version.parse(m[1]) < Version((46, 4, 0))):
+        raise RuntimeError(
+            'Please require `setuptools>=46.4.0` in pyproject.toml\n'
+            "That's the minimum version that supports `attr` in setup.cfg.")
+    if 'build-backend = "setuptools.build_meta"' not in pyproject_toml:
+        raise RuntimeError(
+            '`build-backend = "setuptools.build_meta"` not in pyproject.toml')
+
+
+def check_r3l3453_json():
+    if Path('r3l3453.json').exists():
+        raise RuntimeError(
+            'Remove r3l3453.json as it is not needed anymore.\n'
+            'Version path should be specified in setup.cfg.\n'
+            '[metadata]\n'
+            'version = attr: package.__version__')
+
+
 def main(
     type_: ReleaseType = None, upload: bool = True, push: bool = True,
     simulate: bool = False, path: str = None,
@@ -201,6 +252,8 @@ def main(
     if path is not None:
         Path(path).chdir()
 
+    check_r3l3453_json()
+    check_pyproject_toml()
     assert check_output(('git', 'branch', '--show-current')) == b'master\n'
     assert check_output(('git', 'status', '--porcelain')) == b''
 
