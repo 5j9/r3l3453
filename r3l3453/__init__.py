@@ -152,7 +152,7 @@ def commit_and_tag(release_version: Version):
 
 
 def upload_to_pypi():
-    build = ('python', '-m', 'build')
+    build = ('python', '-m', 'build', '--no-isolation')
     twine = ('twine', 'upload', 'dist/*')
     if SIMULATE is True:
         print(f"{' '.join(build)}\n{' '.join(twine)}")
