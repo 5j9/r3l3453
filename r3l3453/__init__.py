@@ -221,7 +221,7 @@ def check_pyproject_toml():
         with open('pyproject.toml', encoding='utf8') as f:
             pyproject_toml = f.read()
     except FileNotFoundError:
-        with open('pyproject.toml', 'w', encoding='utf8'):
+        with open('pyproject.toml', 'w', encoding='utf8') as f:
             f.write(pyproject_toml)
         raise FileNotFoundError('pyproject.toml was not found; sample created')
     m = search(r'setuptools>=([\d.]+)', pyproject_toml)
