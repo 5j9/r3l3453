@@ -3,7 +3,6 @@ __version__ = '0.12.1.dev0'
 
 from contextlib import contextmanager, AbstractContextManager
 from enum import Enum
-from json import load
 from logging import warning
 from re import IGNORECASE, search
 from subprocess import CalledProcessError, check_call, check_output
