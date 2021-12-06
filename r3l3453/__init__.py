@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 __version__ = '0.9.2.dev0'
 
-from contextlib import contextmanager
+from contextlib import contextmanager, AbstractContextManager
 from enum import Enum
 from json import load
 from logging import warning
@@ -29,7 +29,7 @@ MAJOR = ReleaseType.MAJOR
 SIMULATE = False
 
 
-class FileVersion:
+class VersionFile:
     """Wraps around a version variable in a file. Caches reads."""
     __slots__ = '_file', '_offset', '_version', '_trail'
 
@@ -61,24 +61,17 @@ class FileVersion:
 
 
 @contextmanager
-def get_file_versions() -> list[FileVersion]:
+def read_version_file() -> AbstractContextManager[VersionFile]:
     with open('r3l3453.json', 'r') as f:
         json_config = load(f)
 
-    append = (file_versions := []).append
-    for path_version in json_config['version_paths']:
-        path, variable = path_version.split(':', 1)
-        append(FileVersion(Path(path), variable))
-
-    versions = [fv.version for fv in file_versions]
-    assert versions.count(versions[0]) == len(versions),\
-        "file versions don't match"
+    path, variable = json_config['version_path'].split(':', 1)
+    fv = VersionFile(Path(path), variable)
 
     try:
-        yield file_versions
+        yield fv
     finally:
-        for fv in file_versions:
-            fv.close()
+        fv.close()
 
 
 def get_release_type() -> ReleaseType:
@@ -127,18 +120,17 @@ def get_release_version(
     return base_version.bump_release(index=0)
 
 
-def update_versions(
-    file_versions: list[FileVersion],
+def update_version(
+    version_file: VersionFile,
     release_type: ReleaseType = None,
 ) -> Version:
     """Update all versions specified in config + CHANGELOG.rst."""
-    file_version.version = release_version = get_release_version(
-        (current_ver := (file_version := file_versions[0]).version),
-        release_type)
+    current_ver = version_file.version
+    version_file.version = release_version = get_release_version(
+        current_ver, release_type)
     if SIMULATE is True:  # noinspection PyUnboundLocalVariable
         print(f'change file versions from {current_ver} to {release_version}')
-    for file_version in file_versions[1:]:
-        file_version.version = release_version
+    version_file.version = release_version
     return release_version
 
 
@@ -160,13 +152,13 @@ def commit_and_tag(release_version: Version):
 
 
 def upload_to_pypi():
-    setup = ('python', 'setup.py', 'sdist', 'bdist_wheel')
+    build = ('python', '-m', 'build')
     twine = ('twine', 'upload', 'dist/*')
     if SIMULATE is True:
-        print(f"{' '.join(setup)}\n{' '.join(twine)}")
+        print(f"{' '.join(build)}\n{' '.join(twine)}")
         return
     try:
-        check_call(setup)
+        check_call(build)
         check_call(twine)
     finally:
         for d in ('dist', 'build'):
@@ -212,8 +204,8 @@ def main(
     assert check_output(('git', 'branch', '--show-current')) == b'master\n'
     assert check_output(('git', 'status', '--porcelain')) == b''
 
-    with get_file_versions() as file_versions:
-        release_version = update_versions(file_versions, type_)
+    with read_version_file() as version_file:
+        release_version = update_version(version_file, type_)
         update_changelog(release_version)
         commit_and_tag(release_version)
 
@@ -221,7 +213,7 @@ def main(
             upload_to_pypi()
 
         # prepare next dev0
-        new_dev_version = update_versions(file_versions, DEV)
+        new_dev_version = update_version(version_file, DEV)
         commit(new_dev_version)
 
     if push is True:

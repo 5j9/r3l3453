@@ -1,6 +1,3 @@
 {
-    "version_paths":  [
-        "r3l3453/__init__.py:__version__",
-        "setup.py:version"
-    ]
+    "version_path":  "r3l3453/__init__.py:__version__"
 }
