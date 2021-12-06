@@ -203,7 +203,7 @@ def update_changelog(release_version: Version):
             print('CHANGELOG.rst not found')
 
 
-pyproject_toml = """\
+PYPROJECT_TOML = """\
 [build-system]
 requires = [
     # 46.4.0 is required for handling attr version, see:
@@ -222,7 +222,7 @@ def check_pyproject_toml():
             pyproject_toml = f.read()
     except FileNotFoundError:
         with open('pyproject.toml', 'w', encoding='utf8') as f:
-            f.write(pyproject_toml)
+            f.write(PYPROJECT_TOML)
         raise FileNotFoundError('pyproject.toml was not found; sample created')
     m = search(r'setuptools>=([\d.]+)', pyproject_toml)
     if not m or (Version.parse(m[1]) < Version((46, 4, 0))):
