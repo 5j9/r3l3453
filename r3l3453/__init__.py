@@ -68,6 +68,7 @@ def read_version_path() -> Path:
         if Path('setup.py').exists():
             msg += '\ntry `setuptools-py2cfg` to convert setup.py to setup.cfg'
         raise FileNotFoundError(msg)
+    # https://packaging.python.org/guides/single-sourcing-package-version/
     m = search(r'version = attr: (\w+)\.__version__', setup_cfg)
     if not m:
         raise RuntimeError(
@@ -215,6 +216,7 @@ build-backend = "setuptools.build_meta"
 
 
 def check_pyproject_toml():
+    # https://packaging.python.org/tutorials/packaging-projects/
     try:
         with open('pyproject.toml', encoding='utf8') as f:
             pyproject_toml = f.read()
