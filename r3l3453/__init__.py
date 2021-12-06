@@ -200,7 +200,7 @@ def update_changelog(release_version: Version):
 
 
 def main(
-    type: ReleaseType = None, upload: bool = True, push: bool = True,
+    type_: ReleaseType = None, upload: bool = True, push: bool = True,
     simulate: bool = False, path: str = None,
 ):
     global SIMULATE
@@ -213,7 +213,7 @@ def main(
     assert check_output(('git', 'status', '--porcelain')) == b''
 
     with get_file_versions() as file_versions:
-        release_version = update_versions(file_versions, type)
+        release_version = update_versions(file_versions, type_)
         update_changelog(release_version)
         commit_and_tag(release_version)
 
