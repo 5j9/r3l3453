@@ -199,7 +199,7 @@ def check_update_changelog(
         raise RuntimeError(
             f"CHANGELOG's version ({changelog_version}) does not "
             f"match release_version ({release_version}). "
-            "Use `--ignore-changelog-version` ignore this error.")
+            "Use --ignore-changelog-version ignore this error.")
 
     if SIMULATE is True:
         print(
@@ -281,7 +281,7 @@ def check_git_status(ignore_git_status: bool):
         else:
             raise RuntimeError(
                 'git status is not clean. '
-                'Use `--ignore-git-status` to ignore this error.')
+                'Use --ignore-git-status to ignore this error.')
     branch = check_output(
         ('git', 'branch', '--show-current')).rstrip().decode()
     if branch != 'master':
@@ -290,7 +290,7 @@ def check_git_status(ignore_git_status: bool):
         else:
             raise RuntimeError(
                 f'git is on {branch} branch. '
-                'Use `--ignore-git-status` to ignore this error.')
+                'Use --ignore-git-status to ignore this error.')
 
 
 def main(
