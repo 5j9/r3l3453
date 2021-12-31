@@ -185,7 +185,7 @@ def check_update_changelog(
 ) -> bytes | bool:
     unreleased = match(br'[Uu]nreleased\n\-+\n', changelog)
     if unreleased is None:
-        v_match = match(br'([\d.]+\w+)\n', changelog)
+        v_match = match(br'v([\d.]+\w+)\n', changelog)
         if v_match is None:
             raise RuntimeError(
                 'CHANGELOG.rst does not start with a version or "Unreleased"')
@@ -276,6 +276,7 @@ def main(
     rtype: ReleaseType = None, upload: bool = True, push: bool = True,
     simulate: bool = False, path: str = None,
     ignore_changelog_version: bool = False,
+    ignore_git_status: bool = False,
 ):
     global SIMULATE
     SIMULATE = simulate
@@ -285,8 +286,9 @@ def main(
 
     check_r3l3453_json()
     check_pyproject_toml()
-    assert check_output(('git', 'branch', '--show-current')) == b'master\n'
-    assert check_output(('git', 'status', '--porcelain')) == b''
+    if ignore_git_status is not False:
+        assert check_output(('git', 'branch', '--show-current')) == b'master\n'
+        assert check_output(('git', 'status', '--porcelain')) == b''
 
     with read_version_file() as version_file:
         release_version = update_version(version_file, rtype)
