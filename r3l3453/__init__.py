@@ -73,6 +73,8 @@ def read_version_path() -> Path:
     if not m:
         raise RuntimeError(
             'add `version = attr: package.__version__` to setup.cfg')
+    if '[options]' not in setup_cfg:
+        raise RuntimeError('[options] section was not found in setup.cfgc')
     return Path(m[1]) / '__init__.py'
 
 
