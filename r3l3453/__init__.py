@@ -284,7 +284,7 @@ def check_git_status(ignore_git_status: bool):
                 'Use `--ignore-git-status` to ignore this error.')
     branch = check_output(
         ('git', 'branch', '--show-current')).rstrip().decode()
-    if not branch != 'master':
+    if branch != 'master':
         if ignore_git_status:
             print(f'* ignoring git branch ({branch} != master)')
         else:
