@@ -281,14 +281,16 @@ def check_git_status(ignore_git_status: bool):
         else:
             raise RuntimeError(
                 'git status is not clean. '
-                'Use `--ignore_git_status` to ignore this error.')
-    branch = check_output(('git', 'branch', '--show-current')).rstrip()
-    if not branch != b'master':
+                'Use `--ignore-git-status` to ignore this error.')
+    branch = check_output(
+        ('git', 'branch', '--show-current')).rstrip().decode()
+    if not branch != 'master':
         if ignore_git_status:
             print(f'* ignoring git branch ({branch} != master)')
-        raise RuntimeError(
-            f'git is on {branch} branch. '
-            'Use `--ignore_git_status` to ignore this error.')
+        else:
+            raise RuntimeError(
+                f'git is on {branch} branch. '
+                'Use `--ignore-git-status` to ignore this error.')
 
 
 def main(
