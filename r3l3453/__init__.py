@@ -4,7 +4,7 @@ __version__ = '0.13.1.dev0'
 from contextlib import contextmanager, AbstractContextManager
 from enum import Enum
 from logging import warning
-from re import IGNORECASE, search
+from re import IGNORECASE, search, match
 from subprocess import CalledProcessError, check_call, check_output
 
 from path import Path
@@ -36,7 +36,7 @@ class VersionFile:
         file = self._file = path.open('r+', newline='\n')
         text = file.read()
         if SIMULATE is True:
-            print(f'reading {path}')
+            print(f'* reading {path}')
             from io import StringIO
             self._file = StringIO(text)
         match = search(r'\b__version__\s*=\s*([\'"])(.*?)\1', text)
@@ -98,7 +98,7 @@ def get_release_type() -> ReleaseType:
             ('git', 'describe', '--match', 'v[0-9]*', '--abbrev=0')
         )[:-1].decode()
         if SIMULATE is True:
-            print(f'{last_version_tag=}')
+            print(f'* {last_version_tag=}')
         log = check_output(
             ('git', 'log', '--format=%B', '-z', f'{last_version_tag}..@'))
     except CalledProcessError:  # there are no version tags
@@ -123,7 +123,7 @@ def get_release_version(
     if release_type is None:
         release_type = get_release_type()
         if SIMULATE is True:
-            print(f'get_release_type returned {release_type}')
+            print(f'* {release_type}')
     base_version = current_version.base_version()  # removes devN
     if release_type is PATCH:
         return base_version
@@ -143,7 +143,7 @@ def update_version(
     version_file.version = release_version = get_release_version(
         current_ver, release_type)
     if SIMULATE is True:  # noinspection PyUnboundLocalVariable
-        print(f'change file versions from {current_ver} to {release_version}')
+        print(f'* change file version from {current_ver} to {release_version}')
     version_file.version = release_version
     return release_version
 
@@ -151,7 +151,7 @@ def update_version(
 def commit(version: Version):
     args = ('git', 'commit', '--all', f'--message=release: v{version}')
     if SIMULATE is True:
-        print(' '.join(args))
+        print('* ' + ' '.join(args))
         return
     check_call(args)
 
@@ -160,7 +160,7 @@ def commit_and_tag(release_version: Version):
     commit(release_version)
     git_tag = ('git', 'tag', '-a', f'v{release_version}', '-m', '')
     if SIMULATE is True:
-        print(' '.join(git_tag))
+        print('* ' + ' '.join(git_tag))
         return
     check_call(git_tag)
 
@@ -169,7 +169,7 @@ def upload_to_pypi():
     build = ('python', '-m', 'build', '--no-isolation')
     twine = ('twine', 'upload', 'dist/*')
     if SIMULATE is True:
-        print(f"{' '.join(build)}\n{' '.join(twine)}")
+        print(f"* {' '.join(build)}\n* {' '.join(twine)}")
         return
     try:
         check_call(build)
@@ -179,7 +179,39 @@ def upload_to_pypi():
             Path(d).rmtree_p()
 
 
-def update_changelog(release_version: Version):
+def check_update_changelog(
+    changelog: bytes, release_version: Version,
+    ignore_changelog_version: bool
+) -> bytes | bool:
+    unreleased = match(br'[Uu]nreleased\n\-+\n', changelog)
+    if unreleased is None:
+        v_match = match(br'([\d.]+\w+)\n', changelog)
+        if v_match is None:
+            raise RuntimeError(
+                'CHANGELOG.rst does not start with a version or "Unreleased"')
+        changelog_version = Version.parse(v_match[1].decode())
+        if changelog_version == release_version:
+            print("* CHANGELOG's version matches release_version")
+            return True
+        if ignore_changelog_version is not False:
+            print('* ignoring non-matching CHANGELOG version')
+            return True
+        raise RuntimeError(
+            f"CHANGELOG's version ({changelog_version}) does not "
+            f"match release_version ({release_version})")
+
+    if SIMULATE is True:
+        print(
+            '* replace the "Unreleased" section of "CHANGELOG.rst" with '
+            f'v{release_version}')
+        return True
+
+    ver_bytes = f'v{release_version}'.encode()
+    return b'%b\n%b\n%b' % (
+        ver_bytes, b'-' * len(ver_bytes), changelog[unreleased.end():])
+
+
+def update_changelog(release_version: Version, ignore_changelog_version: bool):
     """Change the title of initial "Unreleased" section to the new version.
 
     Note: "Unreleased" and "CHANGELOG" are the recommendations of
@@ -188,21 +220,16 @@ def update_changelog(release_version: Version):
     try:
         with open('CHANGELOG.rst', 'rb+') as f:
             changelog = f.read()
-            if changelog[:22] != b'Unreleased\n----------\n':
+            new_changelog = check_update_changelog(
+                changelog, release_version, ignore_changelog_version)
+            if new_changelog is True:
                 return
-            if SIMULATE is True:
-                print(
-                    'Replace the "Unreleased" section of "CHANGELOG.rst" with '
-                    f'v{release_version}')
-                return
-            ver_bytes = f'v{release_version}'.encode()
             f.seek(0)
-            f.write(b'%b\n%b\n%b' % (
-                ver_bytes, b'-' * len(ver_bytes), changelog[22:]))
+            f.write(new_changelog)
             f.truncate()
     except FileNotFoundError:
         if SIMULATE is True:
-            print('CHANGELOG.rst not found')
+            print('* CHANGELOG.rst not found')
 
 
 PYPROJECT_TOML = """\
@@ -248,6 +275,7 @@ def check_r3l3453_json():
 def main(
     rtype: ReleaseType = None, upload: bool = True, push: bool = True,
     simulate: bool = False, path: str = None,
+    ignore_changelog_version: bool = False,
 ):
     global SIMULATE
     SIMULATE = simulate
@@ -262,7 +290,7 @@ def main(
 
     with read_version_file() as version_file:
         release_version = update_version(version_file, rtype)
-        update_changelog(release_version)
+        update_changelog(release_version, ignore_changelog_version)
         commit_and_tag(release_version)
 
         if upload is True:
@@ -274,7 +302,7 @@ def main(
 
     if push is True:
         if SIMULATE is True:
-            print('git push')
+            print('* git push')
         else:
             check_call(('git', 'push', '--follow-tags'))
 
