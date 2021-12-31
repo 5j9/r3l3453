@@ -183,7 +183,7 @@ def check_update_changelog(
     changelog: bytes, release_version: Version,
     ignore_changelog_version: bool
 ) -> bytes | bool:
-    unreleased = match(br'[Uu]nreleased\n\-+\n', changelog)
+    unreleased = match(br'[Uu]nreleased\n-+\n', changelog)
     if unreleased is None:
         v_match = match(br'v([\d.]+\w+)\n', changelog)
         if v_match is None:
@@ -198,7 +198,8 @@ def check_update_changelog(
             return True
         raise RuntimeError(
             f"CHANGELOG's version ({changelog_version}) does not "
-            f"match release_version ({release_version})")
+            f"match release_version ({release_version}). "
+            "Use `--ignore-changelog-version` ignore this error.")
 
     if SIMULATE is True:
         print(
@@ -272,6 +273,24 @@ def check_r3l3453_json():
             'version = attr: package.__version__')
 
 
+def check_git_status(ignore_git_status: bool):
+    status = check_output(('git', 'status', '--porcelain'))
+    if status:
+        if ignore_git_status:
+            print(f'* ignoring git {status=}')
+        else:
+            raise RuntimeError(
+                'git status is not clean. '
+                'Use `--ignore_git_status` to ignore this error.')
+    branch = check_output(('git', 'branch', '--show-current')).rstrip()
+    if not branch != b'master':
+        if ignore_git_status:
+            print(f'* ignoring git branch ({branch} != master)')
+        raise RuntimeError(
+            f'git is on {branch} branch. '
+            'Use `--ignore_git_status` to ignore this error.')
+
+
 def main(
     rtype: ReleaseType = None, upload: bool = True, push: bool = True,
     simulate: bool = False, path: str = None,
@@ -286,9 +305,7 @@ def main(
 
     check_r3l3453_json()
     check_pyproject_toml()
-    if ignore_git_status is not False:
-        assert check_output(('git', 'branch', '--show-current')) == b'master\n'
-        assert check_output(('git', 'status', '--porcelain')) == b''
+    check_git_status(ignore_git_status)
 
     with read_version_file() as version_file:
         release_version = update_version(version_file, rtype)
