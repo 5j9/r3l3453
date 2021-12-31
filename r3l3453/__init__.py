@@ -244,7 +244,7 @@ def check_r3l3453_json():
 
 
 def main(
-    type_: ReleaseType = None, upload: bool = True, push: bool = True,
+    rtype: ReleaseType = None, upload: bool = True, push: bool = True,
     simulate: bool = False, path: str = None,
 ):
     global SIMULATE
@@ -259,7 +259,7 @@ def main(
     assert check_output(('git', 'status', '--porcelain')) == b''
 
     with read_version_file() as version_file:
-        release_version = update_version(version_file, type_)
+        release_version = update_version(version_file, rtype)
         update_changelog(release_version)
         commit_and_tag(release_version)
 
