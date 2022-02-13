@@ -60,22 +60,20 @@ class VersionFile:
 
 
 def check_setup_cfg_and_get_version_path() -> Path:
-    try:
-        with open('setup.cfg', encoding='utf8') as f:
-            setup_cfg = f.read()
-    except FileNotFoundError:
+    from configparser import ConfigParser
+    setup_cfg = ConfigParser()
+    successfully_parsed_files = setup_cfg.read('setup.cfg', encoding='utf8')
+    if not successfully_parsed_files:
         msg = 'setup.cfg was not found'
         if Path('setup.py').exists():
             msg += '\ntry `setuptools-py2cfg` to convert setup.py to setup.cfg'
         raise FileNotFoundError(msg)
-    # https://packaging.python.org/guides/single-sourcing-package-version/
-    m = search(r'version = attr: (\w+)\.__version__', setup_cfg)
-    if not m:
-        raise RuntimeError(
-            'add `version = attr: package.__version__` to setup.cfg')
-    if '[options]' not in setup_cfg:
+
+    try:
+        options = setup_cfg['options']
+    except KeyError:
         raise RuntimeError('[options] section was not found in setup.cfg')
-    if 'tests_require = ' in setup_cfg:
+    if 'tests_require' in options:
         raise RuntimeError(
             '`tests_require` in setup.cfg is deprecated; '
             'use the following sample instead:'
@@ -83,6 +81,15 @@ def check_setup_cfg_and_get_version_path() -> Path:
             '\ntest ='
             '\n    pytest'
             '\n    pytest-cov')
+    if 'setup_requires' in options:
+        raise RuntimeError('`setup_requires` is deprecated')
+
+    # https://packaging.python.org/guides/single-sourcing-package-version/
+    version = setup_cfg['metadata']['version']
+    m = search(r'attr: (\w+)\.__version__', version)
+    if not m:
+        raise RuntimeError(
+            'add `version = attr: package.__version__` to setup.cfg')
     return Path(m[1]) / '__init__.py'
 
 
