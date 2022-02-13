@@ -59,7 +59,7 @@ class VersionFile:
         self._file.close()
 
 
-def read_version_path() -> Path:
+def check_setup_cfg_and_get_version_path() -> Path:
     try:
         with open('setup.cfg', encoding='utf8') as f:
             setup_cfg = f.read()
@@ -75,12 +75,20 @@ def read_version_path() -> Path:
             'add `version = attr: package.__version__` to setup.cfg')
     if '[options]' not in setup_cfg:
         raise RuntimeError('[options] section was not found in setup.cfg')
+    if 'tests_require = ' in setup_cfg:
+        raise RuntimeError(
+            '`tests_require` in setup.cfg is deprecated; '
+            'use the following sample instead:'
+            '\n[options.extras_require]'
+            '\ntest ='
+            '\n    pytest'
+            '\n    pytest-cov')
     return Path(m[1]) / '__init__.py'
 
 
 @contextmanager
 def read_version_file() -> AbstractContextManager[VersionFile]:
-    version_path = read_version_path()
+    version_path = check_setup_cfg_and_get_version_path()
     fv = VersionFile(version_path)
     try:
         yield fv
