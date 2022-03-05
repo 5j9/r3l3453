@@ -78,7 +78,7 @@ def check_setup_cfg_and_get_version_path() -> Path:
             '`tests_require` in setup.cfg is deprecated; '
             'use the following sample instead:'
             '\n[options.extras_require]'
-            '\ntest ='
+            '\ntests ='
             '\n    pytest'
             '\n    pytest-cov')
     if 'setup_requires' in options:
