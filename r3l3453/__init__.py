@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 __version__ = '0.14.1.dev0'
 
-from contextlib import contextmanager, AbstractContextManager
+from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
 from logging import warning
-from re import IGNORECASE, search, match
+from re import IGNORECASE, match, search
 from subprocess import CalledProcessError, check_call, check_output
 
-from path import Path
 from parver import Version
+from path import Path
 from typer import run
 
 
