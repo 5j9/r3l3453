@@ -251,6 +251,7 @@ def update_changelog(release_version: Version, ignore_changelog_version: bool):
 ISORT = """
 [tool.isort]
 profile = "black"
+line_length = 79
 combine_as_imports = true
 """
 
