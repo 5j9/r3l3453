@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-__version__ = '0.15.1.dev0'
+__version__ = '0.16.0'
 import tomllib
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
