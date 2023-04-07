@@ -139,7 +139,7 @@ def get_release_version(
     base_version = current_version.base_version()  # removes devN
     if release_type is PATCH:
         return base_version
-    if release_type is MINOR or current_version < Version(1):
+    if release_type is MINOR or current_version < Version((1,)):
         # do not change an early development version to a major release
         # that type of change should be more explicit (edit versions).
         return base_version.bump_release(index=1)
