@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 __version__ = '0.15.1.dev0'
-
+import tomllib
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
 from logging import warning
@@ -59,21 +59,26 @@ class VersionFile:
         self._file.close()
 
 
-def check_setup_cfg_and_get_version_path() -> Path:
-    from configparser import ConfigParser
-    setup_cfg = ConfigParser()
-    successfully_parsed_files = setup_cfg.read('setup.cfg', encoding='utf8')
-    if not successfully_parsed_files:
-        msg = 'setup.cfg was not found'
-        if Path('setup.py').exists():
-            msg += '\ntry `setuptools-py2cfg` to convert setup.py to setup.cfg'
-        raise FileNotFoundError(msg)
+def check_no_old_conf() -> None:
+    files = {f.name for f in Path('.').files()}
+    if 'r3l3453.json' in files:
+        raise RuntimeError(
+            'Remove r3l3453.json as it is not needed anymore.\n'
+            'Version path should be specified in setup.cfg.\n'
+            '[metadata]\n'
+            'version = attr: package.__version__')
 
-    try:
-        options = setup_cfg['options']
-    except KeyError:
-        raise RuntimeError('[options] section was not found in setup.cfg')
-    if 'tests_require' in options:
+    if 'setup.py' in files:
+        raise RuntimeError(
+            '\nsetup.py was found\nTry `setuptools-py2cfg` to '
+            'convert setup.py to setup.cfg and '
+            'then convert setup.cfg to pyproject.toml using `ini2toml`'
+        )
+
+    if 'setup.cfg' not in files:
+        return
+    setup_cfg = Path('setup.cfg').open('r', encoding='utf8').read()
+    if 'tests_require' in setup_cfg:
         raise RuntimeError(
             '`tests_require` in setup.cfg is deprecated; '
             'use the following sample instead:'
@@ -81,26 +86,18 @@ def check_setup_cfg_and_get_version_path() -> Path:
             '\ntests ='
             '\n    pytest'
             '\n    pytest-cov')
-    if 'setup_requires' in options:
+    if 'setup_requires' in setup_cfg:
         raise RuntimeError('`setup_requires` is deprecated')
-
-    # https://packaging.python.org/guides/single-sourcing-package-version/
-    version = setup_cfg['metadata']['version']
-    m = search(r'attr: (\w+)\.__version__', version)
-    if not m:
-        raise RuntimeError(
-            'add `version = attr: package.__version__` to setup.cfg')
-    return Path(m[1]) / '__init__.py'
+    raise RuntimeError('convert setup.cfg to pyproject.toml using `ini2toml`')
 
 
 @contextmanager
-def read_version_file() -> AbstractContextManager[VersionFile]:
-    version_path = check_setup_cfg_and_get_version_path()
-    fv = VersionFile(version_path)
+def read_version_file(version_path) -> AbstractContextManager[VersionFile]:
+    vf = VersionFile(version_path)
     try:
-        yield fv
+        yield vf
     finally:
-        fv.close()
+        vf.close()
 
 
 def get_release_type() -> ReleaseType:
@@ -255,53 +252,98 @@ line_length = 79
 combine_as_imports = true
 """
 
+# 66.1.0 is required for correct handling of sdist files, see:
+# https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
+REQUIRED_SETUPTOOLS_VERSION = '66.1.0'
+
+# todo: check if wheel is required
 PYPROJECT_TOML = f"""\
 [build-system]
 requires = [
-    # 46.4.0 is required for handling attr version, see:
-    # https://packaging.python.org/guides/single-sourcing-package-version/
-    "setuptools>=46.4.0",
-    "wheel"
+    "setuptools>={REQUIRED_SETUPTOOLS_VERSION}",
+    "wheel",
 ]
 build-backend = "setuptools.build_meta"
 {ISORT}
 """
 
 
-def check_pyproject_toml():
+def check_build_system_requires(build_system):
+    try:
+        requires = build_system['requires']
+    except KeyError:
+        raise RuntimeError(f'[build-system] requires not found {PYPROJECT_TOML}')
+
+    for i in requires:
+        if i.startswith('setuptools'):
+            _, _, d_ver = i.partition('>=')
+            d_ver = Version.parse(d_ver)
+            break
+    else:
+        d_ver = None
+
+    if d_ver is None or (d_ver < Version.parse(REQUIRED_SETUPTOOLS_VERSION)):
+        raise RuntimeError(
+            f'[build-system] requires `setuptools>={REQUIRED_SETUPTOOLS_VERSION}` {PYPROJECT_TOML}'
+        )
+
+
+def check_build_system_backend(build_system):
+    try:
+        backend = build_system['build-backend']
+    except KeyError:
+        backend = None
+
+    if backend != 'setuptools.build_meta':
+        raise RuntimeError(
+            '`build-backend = "setuptools.build_meta"` not found in '
+            f'[build-system] of pyproject.toml {PYPROJECT_TOML}'
+        )
+
+def check_build_system(d):
+    try:
+        build_system = d['build-system']
+    except KeyError:
+        raise RuntimeError(f'[build-system] not found in pyproject.toml {PYPROJECT_TOML}')
+    check_build_system_backend(build_system)
+    check_build_system_requires(build_system)
+
+
+def check_isort(tool: dict):
+    try:
+        isort = tool['isort']
+    except KeyError:
+        with open('pyproject.toml', 'a', encoding='utf8') as f:
+            f.write(ISORT)
+        raise RuntimeError('[tool.isort] was added to pyproject.toml')
+
+    if isort != {'profile': 'black', 'line_length': 79, 'combine_as_imports': True}:
+        raise RuntimeError(f'[tool.isort] is parameters are incomplete. Add {ISORT}')
+
+
+def check_setuptools(tool: dict) -> Path:
+    attr = tool['setuptools']['dynamic']['version']['attr']
+    return Path(attr.removesuffix('.__version__')) / '__init__.py'
+
+
+def check_tool(d) -> Path:
+    tool = d['tool']
+    check_isort(tool)
+    return check_setuptools(tool)
+
+
+def check_pyproject_toml() -> Path:
     # https://packaging.python.org/tutorials/packaging-projects/
     try:
-        with open('pyproject.toml', encoding='utf8') as f:
-            pyproject_toml = f.read()
+        with open('pyproject.toml', 'rb') as f:
+            d = tomllib.load(f)
     except FileNotFoundError:
         with open('pyproject.toml', 'w', encoding='utf8') as f:
             f.write(PYPROJECT_TOML)
         raise FileNotFoundError('pyproject.toml was not found; sample created')
 
-    m = search(r'setuptools>=([\d.]+)', pyproject_toml)
-    if not m or (Version.parse(m[1]) < Version((46, 4, 0))):
-        raise RuntimeError(
-            'Please require `setuptools>=46.4.0` in pyproject.toml\n'
-            "That's the minimum version that supports `attr` in setup.cfg.\n"
-        )
-
-    if 'build-backend = "setuptools.build_meta"' not in pyproject_toml:
-        raise RuntimeError(
-            '`build-backend = "setuptools.build_meta"` not in pyproject.toml')
-
-    if '[tool.isort]' not in pyproject_toml:
-        with open('pyproject.toml', 'a', encoding='utf8') as f:
-            f.write(ISORT)
-        raise RuntimeError('[tool.isort] was added to pyproject.toml')
-
-
-def check_r3l3453_json():
-    if Path('r3l3453.json').exists():
-        raise RuntimeError(
-            'Remove r3l3453.json as it is not needed anymore.\n'
-            'Version path should be specified in setup.cfg.\n'
-            '[metadata]\n'
-            'version = attr: package.__version__')
+    check_build_system(d)
+    return check_tool(d)
 
 
 def check_git_status(ignore_git_status: bool):
@@ -332,15 +374,15 @@ def main(
 ):
     global SIMULATE
     SIMULATE = simulate
-
+    print(f'* r3l3453 v{__version__}')
     if path is not None:
         Path(path).chdir()
 
-    check_r3l3453_json()
-    check_pyproject_toml()
+    check_no_old_conf()
+    version_path = check_pyproject_toml()
     check_git_status(ignore_git_status)
 
-    with read_version_file() as version_file:
+    with read_version_file(version_path) as version_file:
         release_version = update_version(version_file, rtype)
         update_changelog(release_version, ignore_changelog_version)
         commit_and_tag(release_version)
