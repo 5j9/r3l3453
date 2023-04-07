@@ -1,15 +1,10 @@
 [build-system]
-requires = [
-    "setuptools>=66.1.0",
-]
+requires = ["setuptools>=66.1.0"]
 build-backend = "setuptools.build_meta"
 
 
 [project]
 name = "r3l3453"
-authors = [
-    { name = "5j9", email = "5j9@users.noreply.github.com" },
-]
 description = "Bump version, tag, commit, release to pypi, bump again, and push."
 classifiers = [
     "Intended Audience :: Developers",
@@ -19,17 +14,8 @@ classifiers = [
 ]
 # tomllib was added in 3.11
 requires-python = ">=3.11"
-dependencies = [
-    "parver",
-    "path",
-    "typer",
-    "wheel",
-    "twine",
-    "build",
-]
-dynamic = [
-    "version",
-]
+dependencies = ["parver", "path", "typer", "wheel", "twine", "build"]
+dynamic = ["version"]
 [project.license]
 text = "GNU General Public License v3 (GPLv3)"
 [project.readme]
@@ -39,12 +25,12 @@ content-type = "text/x-rst"
 Homepage = "https://github.com/5j9/r3l3453"
 [project.scripts]
 r3l3453 = "r3l3453.__init__:console_scripts_entry_point"
-
+[[project.authors]]
+name = "5j9"
+email = "5j9@users.noreply.github.com"
 
 [tool.setuptools]
-packages = [
-    "r3l3453",
-]
+packages = ["r3l3453"]
 zip-safe = true
 include-package-data = false
 [tool.setuptools.dynamic.version]
