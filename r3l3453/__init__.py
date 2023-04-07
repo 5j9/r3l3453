@@ -365,6 +365,13 @@ def check_git_status(ignore_git_status: bool):
                 'Use --ignore-git-status to ignore this error.')
 
 
+def reset_and_delete_tag(release_version):
+    print('* reset_and_delete_tag')
+    check_call(['git', 'reset', '@^'])
+    check_call(['git', 'tag', '--delete', f'v{release_version}'])
+
+
+
 def main(
     rtype: ReleaseType = None, upload: bool = True, push: bool = True,
     simulate: bool = False, path: str = None,
@@ -387,7 +394,11 @@ def main(
         commit_and_tag(release_version)
 
         if upload is True:
-            upload_to_pypi()
+            try:
+                upload_to_pypi()
+            except Exception as e:
+                reset_and_delete_tag(release_version)
+                raise e
 
         # prepare next dev0
         new_dev_version = update_version(version_file, DEV)
