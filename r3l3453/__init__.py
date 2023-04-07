@@ -256,7 +256,6 @@ combine_as_imports = true
 # https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
 REQUIRED_SETUPTOOLS_VERSION = '66.1.0'
 
-# todo: check if wheel is required
 PYPROJECT_TOML = f"""\
 [build-system]
 requires = [
