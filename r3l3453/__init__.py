@@ -319,6 +319,13 @@ def check_isort(tool: dict):
     if isort != {'profile': 'black', 'line_length': 79, 'combine_as_imports': True}:
         raise RuntimeError(f'[tool.isort] is parameters are incomplete. Add {ISORT}')
 
+    if SIMULATE:
+        print('* isort .')
+    else:
+        output = check_output(['isort', '.'])
+        if b'Fixing ' in output:
+            raise RuntimeError('commit isort modifications')
+
 
 def check_setuptools(tool: dict) -> Path:
     attr = tool['setuptools']['dynamic']['version']['attr']
