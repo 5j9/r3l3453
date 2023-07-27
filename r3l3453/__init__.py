@@ -5,7 +5,12 @@ from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
 from logging import warning
 from re import IGNORECASE, match, search
-from subprocess import CalledProcessError, check_call, check_output
+from subprocess import (
+    CalledProcessError,
+    TimeoutExpired,
+    check_call,
+    check_output,
+)
 
 from parver import Version
 from path import Path
@@ -30,6 +35,7 @@ SIMULATE = False
 
 class VersionFile:
     """Wraps around a version variable in a file. Caches reads."""
+
     __slots__ = '_file', '_offset', '_version', '_trail'
 
     def __init__(self, path: Path):
@@ -38,6 +44,7 @@ class VersionFile:
         if SIMULATE is True:
             print(f'* reading {path}')
             from io import StringIO
+
             self._file = StringIO(text)
         match = search(r'\b__version__\s*=\s*([\'"])(.*?)\1', text)
         self._offset, end = match.span(2)
@@ -66,7 +73,8 @@ def check_no_old_conf() -> None:
             'Remove r3l3453.json as it is not needed anymore.\n'
             'Version path should be specified in setup.cfg.\n'
             '[metadata]\n'
-            'version = attr: package.__version__')
+            'version = attr: package.__version__'
+        )
 
     if 'setup.py' in files:
         raise RuntimeError(
@@ -85,7 +93,8 @@ def check_no_old_conf() -> None:
             '\n[options.extras_require]'
             '\ntests ='
             '\n    pytest'
-            '\n    pytest-cov')
+            '\n    pytest-cov'
+        )
     if 'setup_requires' in setup_cfg:
         raise RuntimeError('`setup_requires` is deprecated')
     raise RuntimeError('convert setup.cfg to pyproject.toml using `ini2toml`')
@@ -112,12 +121,12 @@ def get_release_type() -> ReleaseType:
         if SIMULATE is True:
             print(f'* {last_version_tag=}')
         log = check_output(
-            ('git', 'log', '--format=%B', '-z', f'{last_version_tag}..@'))
+            ('git', 'log', '--format=%B', '-z', f'{last_version_tag}..@')
+        )
     except CalledProcessError:  # there are no version tags
         warning('No version tags found. Checking all commits...')
         log = check_output(('git', 'log', '--format=%B'))
-    if search(
-            rb'(?:\A|[\0\n])(?:BREAKING CHANGE[(:]|.*?!:)', log):
+    if search(rb'(?:\A|[\0\n])(?:BREAKING CHANGE[(:]|.*?!:)', log):
         return MAJOR
     if search(rb'(?:\A|\0)feat[(:]', log, IGNORECASE):
         return MINOR
@@ -153,7 +162,8 @@ def update_version(
     """Update all versions specified in config + CHANGELOG.rst."""
     current_ver = version_file.version
     version_file.version = release_version = get_release_version(
-        current_ver, release_type)
+        current_ver, release_type
+    )
     if SIMULATE is True:  # noinspection PyUnboundLocalVariable
         print(f'* change file version from {current_ver} to {release_version}')
     version_file.version = release_version
@@ -185,22 +195,26 @@ def upload_to_pypi():
         return
     try:
         check_call(build)
-        check_call(twine)
+        try:
+            check_call(twine, timeout=60)
+        except TimeoutExpired:
+            print('* TimeoutExpired: retrying once more')
+            check_call(twine, timeout=60)
     finally:
         for d in ('dist', 'build'):
             Path(d).rmtree_p()
 
 
 def check_update_changelog(
-    changelog: bytes, release_version: Version,
-    ignore_changelog_version: bool
+    changelog: bytes, release_version: Version, ignore_changelog_version: bool
 ) -> bytes | bool:
     unreleased = match(br'[Uu]nreleased\n-+\n', changelog)
     if unreleased is None:
         v_match = match(br'v([\d.]+\w+)\n', changelog)
         if v_match is None:
             raise RuntimeError(
-                'CHANGELOG.rst does not start with a version or "Unreleased"')
+                'CHANGELOG.rst does not start with a version or "Unreleased"'
+            )
         changelog_version = Version.parse(v_match[1].decode())
         if changelog_version == release_version:
             print("* CHANGELOG's version matches release_version")
@@ -211,17 +225,22 @@ def check_update_changelog(
         raise RuntimeError(
             f"CHANGELOG's version ({changelog_version}) does not "
             f"match release_version ({release_version}). "
-            "Use --ignore-changelog-version ignore this error.")
+            "Use --ignore-changelog-version ignore this error."
+        )
 
     if SIMULATE is True:
         print(
             '* replace the "Unreleased" section of "CHANGELOG.rst" with '
-            f'v{release_version}')
+            f'v{release_version}'
+        )
         return True
 
     ver_bytes = f'v{release_version}'.encode()
     return b'%b\n%b\n%b' % (
-        ver_bytes, b'-' * len(ver_bytes), changelog[unreleased.end():])
+        ver_bytes,
+        b'-' * len(ver_bytes),
+        changelog[unreleased.end() :],
+    )
 
 
 def update_changelog(release_version: Version, ignore_changelog_version: bool):
@@ -234,7 +253,8 @@ def update_changelog(release_version: Version, ignore_changelog_version: bool):
         with open('CHANGELOG.rst', 'rb+') as f:
             changelog = f.read()
             new_changelog = check_update_changelog(
-                changelog, release_version, ignore_changelog_version)
+                changelog, release_version, ignore_changelog_version
+            )
             if new_changelog is True:
                 return
             f.seek(0)
@@ -271,7 +291,9 @@ def check_build_system_requires(build_system):
     try:
         requires = build_system['requires']
     except KeyError:
-        raise RuntimeError(f'[build-system] requires not found {PYPROJECT_TOML}')
+        raise RuntimeError(
+            f'[build-system] requires not found {PYPROJECT_TOML}'
+        )
 
     for i in requires:
         if i.startswith('setuptools'):
@@ -299,11 +321,14 @@ def check_build_system_backend(build_system):
             f'[build-system] of pyproject.toml {PYPROJECT_TOML}'
         )
 
+
 def check_build_system(d):
     try:
         build_system = d['build-system']
     except KeyError:
-        raise RuntimeError(f'[build-system] not found in pyproject.toml {PYPROJECT_TOML}')
+        raise RuntimeError(
+            f'[build-system] not found in pyproject.toml {PYPROJECT_TOML}'
+        )
     check_build_system_backend(build_system)
     check_build_system_requires(build_system)
 
@@ -316,8 +341,14 @@ def check_isort(tool: dict):
             f.write(ISORT)
         raise RuntimeError('[tool.isort] was added to pyproject.toml')
 
-    if isort != {'profile': 'black', 'line_length': 79, 'combine_as_imports': True}:
-        raise RuntimeError(f'[tool.isort] is parameters are incomplete. Add {ISORT}')
+    if isort != {
+        'profile': 'black',
+        'line_length': 79,
+        'combine_as_imports': True,
+    }:
+        raise RuntimeError(
+            f'[tool.isort] is parameters are incomplete. Add {ISORT}'
+        )
 
     output = check_output(['isort', '.'])
     if b'Fixing ' in output:
@@ -357,16 +388,19 @@ def check_git_status(ignore_git_status: bool):
         else:
             raise RuntimeError(
                 'git status is not clean. '
-                'Use --ignore-git-status to ignore this error.')
-    branch = check_output(
-        ('git', 'branch', '--show-current')).rstrip().decode()
+                'Use --ignore-git-status to ignore this error.'
+            )
+    branch = (
+        check_output(('git', 'branch', '--show-current')).rstrip().decode()
+    )
     if branch != 'master':
         if ignore_git_status:
             print(f'* ignoring git branch ({branch} != master)')
         else:
             raise RuntimeError(
                 f'git is on {branch} branch. '
-                'Use --ignore-git-status to ignore this error.')
+                'Use --ignore-git-status to ignore this error.'
+            )
 
 
 def reset_and_delete_tag(release_version):
@@ -375,10 +409,12 @@ def reset_and_delete_tag(release_version):
     check_call(['git', 'tag', '--delete', f'v{release_version}'])
 
 
-
 def main(
-    rtype: ReleaseType = None, upload: bool = True, push: bool = True,
-    simulate: bool = False, path: str = None,
+    rtype: ReleaseType = None,
+    upload: bool = True,
+    push: bool = True,
+    simulate: bool = False,
+    path: str = None,
     ignore_changelog_version: bool = False,
     ignore_git_status: bool = False,
 ):
