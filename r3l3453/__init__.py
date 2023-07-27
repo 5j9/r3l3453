@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-__version__ = '0.21.1.dev0'
+__version__ = '0.22.0'
 import tomllib
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
@@ -193,18 +193,18 @@ def upload_to_pypi():
     if SIMULATE is True:
         print(f"* {' '.join(build)}\n* {' '.join(twine)}")
         return
-    check_call(build)
-    while True:
-        try:
-            check_call(twine, timeout=120)
-        except TimeoutExpired:
-            print('* TimeoutExpired: will retry until success')
-            continue
-        else:
+    try:
+        check_call(build)
+        while True:
+            try:
+                check_call(twine, timeout=120)
+            except TimeoutExpired:
+                print('* TimeoutExpired: will retry until success')
+                continue
             break
-        finally:
-            for d in ('dist', 'build'):
-                Path(d).rmtree_p()
+    finally:
+        for d in ('dist', 'build'):
+            Path(d).rmtree_p()
 
 
 def check_update_changelog(
