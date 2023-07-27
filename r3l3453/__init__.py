@@ -193,16 +193,18 @@ def upload_to_pypi():
     if SIMULATE is True:
         print(f"* {' '.join(build)}\n* {' '.join(twine)}")
         return
-    try:
-        check_call(build)
+    check_call(build)
+    while True:
         try:
-            check_call(twine, timeout=60)
+            check_call(twine, timeout=120)
         except TimeoutExpired:
-            print('* TimeoutExpired: retrying once more')
-            check_call(twine, timeout=60)
-    finally:
-        for d in ('dist', 'build'):
-            Path(d).rmtree_p()
+            print('* TimeoutExpired: will retry until success')
+            continue
+        else:
+            break
+        finally:
+            for d in ('dist', 'build'):
+                Path(d).rmtree_p()
 
 
 def check_update_changelog(
