@@ -12,9 +12,9 @@ from subprocess import (
     check_output,
 )
 
+import typer
 from parver import Version
 from path import Path
-from typer import run
 
 
 class ReleaseType(Enum):
@@ -411,6 +411,13 @@ def reset_and_delete_tag(release_version):
     check_call(['git', 'tag', '--delete', f'v{release_version}'])
 
 
+def version_callback(value: bool):
+    if not value:
+        return
+    print(f"{__version__}")
+    raise typer.Exit()
+
+
 def main(
     rtype: ReleaseType = None,
     upload: bool = True,
@@ -419,6 +426,7 @@ def main(
     path: str = None,
     ignore_changelog_version: bool = False,
     ignore_git_status: bool = False,
+    version: bool = typer.Option(None, "--version", callback=version_callback),
 ):
     global SIMULATE
     SIMULATE = simulate
@@ -454,4 +462,4 @@ def main(
 
 
 def console_scripts_entry_point():
-    run(main)
+    typer.run(main)
