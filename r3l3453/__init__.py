@@ -197,9 +197,9 @@ def upload_to_pypi():
         check_call(build)
         while True:
             try:
-                check_call(twine, timeout=120)
+                check_call(twine, timeout=60)
             except TimeoutExpired:
-                print('* TimeoutExpired: will retry until success')
+                print('\n* TimeoutExpired: will retry until success')
                 continue
             break
     finally:
