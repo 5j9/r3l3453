@@ -170,8 +170,8 @@ def update_version(
     return release_version
 
 
-def commit(version: Version):
-    args = ('git', 'commit', '--all', f'--message=release: v{version}')
+def commit(message: str):
+    args = ('git', 'commit', '--all', f'--message={message}')
     if SIMULATE is True:
         print('* ' + ' '.join(args))
         return
@@ -179,7 +179,7 @@ def commit(version: Version):
 
 
 def commit_and_tag(release_version: Version):
-    commit(release_version)
+    commit(f'release: v{release_version}')
     git_tag = ('git', 'tag', '-a', f'v{release_version}', '-m', '')
     if SIMULATE is True:
         print('* ' + ' '.join(git_tag))
@@ -452,7 +452,7 @@ def main(
 
         # prepare next dev0
         new_dev_version = update_version(version_file, DEV)
-        commit(new_dev_version)
+        commit(f'chore(__version__): bump to {new_dev_version}')
 
     if push is True:
         if SIMULATE is True:
