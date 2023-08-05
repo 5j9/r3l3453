@@ -187,7 +187,7 @@ def commit_and_tag(release_version: Version):
     check_call(git_tag)
 
 
-def upload_to_pypi():
+def upload_to_pypi(timeout):
     build = ('python', '-m', 'build', '--no-isolation')
     twine = ('twine', 'upload', 'dist/*')
     if SIMULATE is True:
@@ -197,7 +197,7 @@ def upload_to_pypi():
         check_call(build)
         while True:
             try:
-                check_call(twine, timeout=60)
+                check_call(twine, timeout=timeout)
             except TimeoutExpired:
                 print('\n* TimeoutExpired: will retry until success')
                 continue
@@ -426,6 +426,7 @@ def main(
     path: str = None,
     ignore_changelog_version: bool = False,
     ignore_git_status: bool = False,
+    timeout: int = 30,
     version: bool = typer.Option(None, "--version", callback=version_callback),
 ):
     global SIMULATE
@@ -445,7 +446,7 @@ def main(
 
         if upload is True:
             try:
-                upload_to_pypi()
+                upload_to_pypi(timeout)
             except Exception as e:
                 reset_and_delete_tag(release_version)
                 raise e
