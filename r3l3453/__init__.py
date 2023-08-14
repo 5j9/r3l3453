@@ -24,12 +24,6 @@ class ReleaseType(Enum):
     MAJOR = 'major'
 
 
-DEV = ReleaseType.DEV
-PATCH = ReleaseType.PATCH
-MINOR = ReleaseType.MINOR
-MAJOR = ReleaseType.MAJOR
-
-
 SIMULATE = False
 
 
@@ -109,8 +103,8 @@ def read_version_file(version_path) -> AbstractContextManager[VersionFile]:
         vf.close()
 
 
-def get_release_type() -> ReleaseType:
-    """Return 0 for major, 1 for minor and 2 for a patch release.
+def get_release_type(base_version: Version) -> ReleaseType:
+    """Return release type by analyzing git commits.
 
     According to https://www.conventionalcommits.org/en/v1.0.0/ .
     """
@@ -126,31 +120,37 @@ def get_release_type() -> ReleaseType:
     except CalledProcessError:  # there are no version tags
         warning('No version tags found. Checking all commits...')
         log = check_output(('git', 'log', '--format=%B'))
+
     if search(rb'(?:\A|[\0\n])(?:BREAKING CHANGE[(:]|.*?!:)', log):
-        return MAJOR
+        if base_version < Version((1,)):
+            # Do not bump an early development version to a major release.
+            # That type of change should be explicit (via rtype param).
+            return ReleaseType.MINOR
+        return ReleaseType.MAJOR
     if search(rb'(?:\A|\0)feat[(:]', log, IGNORECASE):
-        return MINOR
-    return PATCH
+        return ReleaseType.MINOR
+    return ReleaseType.PATCH
 
 
 def get_release_version(
     current_version: Version, release_type: ReleaseType = None
 ) -> Version:
     """Return the next version according to git log."""
-    if release_type is DEV:
+    if release_type is ReleaseType.DEV:
         if current_version.is_devrelease:
             return current_version.bump_dev()
         return current_version.bump_release(index=2).bump_dev()
+
+    base_version = current_version.base_version()  # removes devN
+
     if release_type is None:
-        release_type = get_release_type()
+        release_type = get_release_type(base_version)
         if SIMULATE is True:
             print(f'* {release_type}')
-    base_version = current_version.base_version()  # removes devN
-    if release_type is PATCH:
+
+    if release_type is ReleaseType.PATCH:
         return base_version
-    if release_type is MINOR or current_version < Version((1,)):
-        # do not change an early development version to a major release
-        # that type of change should be more explicit (edit versions).
+    if release_type is ReleaseType.MINOR:
         return base_version.bump_release(index=1)
     return base_version.bump_release(index=0)
 
@@ -452,7 +452,7 @@ def main(
                 raise e
 
         # prepare next dev0
-        new_dev_version = update_version(version_file, DEV)
+        new_dev_version = update_version(version_file, ReleaseType.DEV)
         commit(f'chore(__version__): bump to {new_dev_version}')
 
     if push is True:
