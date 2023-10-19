@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-__version__ = '0.27.1.dev0'
+__version__ = '0.28.1.dev0'
 import os
 import tomllib
 from contextlib import AbstractContextManager, contextmanager
@@ -218,7 +218,7 @@ def upload_to_pypi(timeout):
             break
     finally:
         for d in ('dist', 'build'):
-            rmtree(d)
+            rmtree(d, ignore_errors=True)
 
 
 def check_update_changelog(
