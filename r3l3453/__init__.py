@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 __version__ = '0.27.1.dev0'
+import os
 import tomllib
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
 from logging import warning
 from re import IGNORECASE, match, search
+from shutil import rmtree
 from subprocess import (
     CalledProcessError,
     TimeoutExpired,
@@ -14,7 +16,6 @@ from subprocess import (
 
 import typer
 from parver import Version
-from path import Path
 
 
 class ReleaseType(Enum):
@@ -32,8 +33,8 @@ class VersionFile:
 
     __slots__ = '_file', '_offset', '_version', '_trail'
 
-    def __init__(self, path: Path):
-        file = self._file = path.open('r+', newline='\n')
+    def __init__(self, path: str):
+        file = self._file = open(path, 'r+', newline='\n')
         text = file.read()
         if SIMULATE is True:
             print(f'* reading {path}')
@@ -61,7 +62,7 @@ class VersionFile:
 
 
 def check_setup_cfg():
-    setup_cfg = Path('setup.cfg').open('r', encoding='utf8').read()
+    setup_cfg = open('setup.cfg', 'r', encoding='utf8').read()
     if 'tests_require' in setup_cfg:
         raise RuntimeError(
             '`tests_require` in setup.cfg is deprecated; '
@@ -79,7 +80,7 @@ def check_setup_cfg():
 
 
 def check_no_old_conf() -> None:
-    files = {f.name for f in Path('.').files()}
+    files = {de.name for de in os.scandir('.') if de.is_file()}
     if 'r3l3453.json' in files:
         raise RuntimeError(
             'Remove r3l3453.json as it is not needed anymore.\n'
@@ -106,7 +107,9 @@ def check_no_old_conf() -> None:
 
 
 @contextmanager
-def read_version_file(version_path) -> AbstractContextManager[VersionFile]:
+def read_version_file(
+    version_path: str,
+) -> AbstractContextManager[VersionFile]:
     vf = VersionFile(version_path)
     try:
         yield vf
@@ -215,7 +218,7 @@ def upload_to_pypi(timeout):
             break
     finally:
         for d in ('dist', 'build'):
-            Path(d).rmtree_p()
+            rmtree(d)
 
 
 def check_update_changelog(
@@ -335,9 +338,9 @@ def check_build_system_backend(build_system):
         )
 
 
-def check_build_system(d):
+def check_build_system(pyproject):
     try:
-        build_system = d['build-system']
+        build_system = pyproject['build-system']
     except KeyError:
         raise RuntimeError(
             f'[build-system] not found in pyproject.toml {PYPROJECT_TOML}'
@@ -368,7 +371,7 @@ def check_isort(tool: dict):
         raise RuntimeError('commit isort modifications')
 
 
-def check_setuptools(setuptools: dict) -> Path:
+def check_setuptools(setuptools: dict) -> str:
     include_package_data = setuptools.get('include-package-data')
     if include_package_data is True:
         raise RuntimeError(
@@ -391,28 +394,28 @@ def check_setuptools(setuptools: dict) -> Path:
             '```\n'
             'See https://setuptools.pypa.io/en/latest/userguide/datafiles.html#summary for more info.'
         )
-    attr = setuptools['dynamic']['version']['attr']
-    return Path(attr.removesuffix('.__version__')) / '__init__.py'
+    attr: str = setuptools['dynamic']['version']['attr']
+    return attr.removesuffix('.__version__') + '/__init__.py'
 
 
-def check_tool(d) -> Path:
-    tool = d['tool']
+def check_tool(pyproject: dict) -> str:
+    tool = pyproject['tool']
     check_isort(tool)
     return check_setuptools(tool['setuptools'])
 
 
-def check_pyproject_toml() -> Path:
+def check_pyproject_toml() -> str:
     # https://packaging.python.org/tutorials/packaging-projects/
     try:
         with open('pyproject.toml', 'rb') as f:
-            d = tomllib.load(f)
+            pyproject = tomllib.load(f)
     except FileNotFoundError:
         with open('pyproject.toml', 'w', encoding='utf8') as f:
             f.write(PYPROJECT_TOML)
         raise FileNotFoundError('pyproject.toml was not found; sample created')
 
-    check_build_system(d)
-    return check_tool(d)
+    check_build_system(pyproject)
+    return check_tool(pyproject)
 
 
 def check_git_status(ignore_git_status: bool):
@@ -460,13 +463,15 @@ def main(
     ignore_changelog_version: bool = False,
     ignore_git_status: bool = False,
     timeout: int = 30,
-    version: bool = typer.Option(None, "--version", callback=version_callback),
+    version: bool = typer.Option(  # noqa, version is not used inside function
+        None, "--version", callback=version_callback
+    ),
 ):
     global SIMULATE
     SIMULATE = simulate
     print(f'* r3l3453 v{__version__}')
     if path is not None:
-        Path(path).chdir()
+        os.chdir(path)
 
     check_no_old_conf()
     version_path = check_pyproject_toml()
