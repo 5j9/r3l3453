@@ -60,6 +60,24 @@ class VersionFile:
         self._file.close()
 
 
+def check_setup_cfg():
+    setup_cfg = Path('setup.cfg').open('r', encoding='utf8').read()
+    if 'tests_require' in setup_cfg:
+        raise RuntimeError(
+            '`tests_require` in setup.cfg is deprecated; '
+            'use the following sample instead:'
+            '\n```'
+            '\n[options.extras_require]'
+            '\ntests ='
+            '\n    pytest'
+            '\n    pytest-cov'
+            '\n```'
+        )
+    if 'setup_requires' in setup_cfg:
+        raise RuntimeError('`setup_requires` is deprecated')
+    raise RuntimeError('convert setup.cfg to pyproject.toml using `ini2toml`')
+
+
 def check_no_old_conf() -> None:
     files = {f.name for f in Path('.').files()}
     if 'r3l3453.json' in files:
@@ -77,21 +95,14 @@ def check_no_old_conf() -> None:
             'then convert setup.cfg to pyproject.toml using `ini2toml`'
         )
 
-    if 'setup.cfg' not in files:
-        return
-    setup_cfg = Path('setup.cfg').open('r', encoding='utf8').read()
-    if 'tests_require' in setup_cfg:
+    if 'setup.cfg' in files:
+        check_setup_cfg()
+
+    if 'MANIFEST.in' in files:
         raise RuntimeError(
-            '`tests_require` in setup.cfg is deprecated; '
-            'use the following sample instead:'
-            '\n[options.extras_require]'
-            '\ntests ='
-            '\n    pytest'
-            '\n    pytest-cov'
+            'Use `package-data` and `exclude-package-data` instead of `MANIFEST.in`.\n'
+            'See https://setuptools.pypa.io/en/latest/userguide/datafiles.html#summary for more info.'
         )
-    if 'setup_requires' in setup_cfg:
-        raise RuntimeError('`setup_requires` is deprecated')
-    raise RuntimeError('convert setup.cfg to pyproject.toml using `ini2toml`')
 
 
 @contextmanager
@@ -357,15 +368,37 @@ def check_isort(tool: dict):
         raise RuntimeError('commit isort modifications')
 
 
-def check_setuptools(tool: dict) -> Path:
-    attr = tool['setuptools']['dynamic']['version']['attr']
+def check_setuptools(setuptools: dict) -> Path:
+    include_package_data = setuptools.get('include-package-data')
+    if include_package_data is True:
+        raise RuntimeError(
+            '`include-package-data = true` only works in conjunction with `MANIFEST.in`/`setuptools-scm`;\n'
+            'Set it to `false` and use `[tool.setuptools.package-data]` instead:\n'
+            '```\n'
+            '[tool.setuptools.package-data]\n'
+            'mypkg = ["*.txt", "*.rst"]\n'
+            '```\n'
+            'See https://setuptools.pypa.io/en/latest/userguide/datafiles.html#summary for more info.'
+        )
+    if include_package_data is None:
+        raise RuntimeError(
+            'include-package-data is implicitly set to `true`, we do not want that.\n'
+            'Add `include-package-data = false` to `[tool.setuptools]`.'
+            'If you need to include data files, use `[tool.setuptools.package-data]` instead:\n'
+            '```\n'
+            '[tool.setuptools.package-data]\n'
+            'mypkg = ["*.txt", "*.rst"]\n'
+            '```\n'
+            'See https://setuptools.pypa.io/en/latest/userguide/datafiles.html#summary for more info.'
+        )
+    attr = setuptools['dynamic']['version']['attr']
     return Path(attr.removesuffix('.__version__')) / '__init__.py'
 
 
 def check_tool(d) -> Path:
     tool = d['tool']
     check_isort(tool)
-    return check_setuptools(tool)
+    return check_setuptools(tool['setuptools'])
 
 
 def check_pyproject_toml() -> Path:
