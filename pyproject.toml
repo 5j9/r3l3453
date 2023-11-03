@@ -14,7 +14,7 @@ classifiers = [
 ]
 # tomllib was added in 3.11
 requires-python = ">=3.11"
-dependencies = ["parver", "typer", "wheel", "twine", "build", "isort"]
+dependencies = ["parver", "typer", "wheel", "twine", "build", "ruff"]
 dynamic = ["version"]
 [project.license]
 text = "GNU General Public License v3 (GPLv3)"
