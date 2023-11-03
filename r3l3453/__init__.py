@@ -350,6 +350,8 @@ def check_build_system(pyproject):
 
 
 def check_ruff(tool: dict):
+    if 'isort' in tool:
+        raise RuntimeError(f'use ruff instead of isort:{RUFF}')
     try:
         ruff = tool['ruff']
     except KeyError:
