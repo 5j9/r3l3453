@@ -36,8 +36,7 @@ include-package-data = false
 [tool.setuptools.dynamic.version]
 attr = "r3l3453.__version__"
 
-
-[tool.isort]
-profile = "black"
-line_length = 79
-combine_as_imports = true
+[tool.ruff]
+line-length = 79
+format.quote-style = 'single'
+isort.combine-as-imports = true

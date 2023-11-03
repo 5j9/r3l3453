@@ -224,9 +224,9 @@ def upload_to_pypi(timeout):
 def check_update_changelog(
     changelog: bytes, release_version: Version, ignore_changelog_version: bool
 ) -> bytes | bool:
-    unreleased = match(br'[Uu]nreleased\n-+\n', changelog)
+    unreleased = match(rb'[Uu]nreleased\n-+\n', changelog)
     if unreleased is None:
-        v_match = match(br'v([\d.]+\w+)\n', changelog)
+        v_match = match(rb'v([\d.]+\w+)\n', changelog)
         if v_match is None:
             raise RuntimeError(
                 'CHANGELOG.rst does not start with a version or "Unreleased"'
@@ -240,8 +240,8 @@ def check_update_changelog(
             return True
         raise RuntimeError(
             f"CHANGELOG's version ({changelog_version}) does not "
-            f"match release_version ({release_version}). "
-            "Use --ignore-changelog-version ignore this error."
+            f'match release_version ({release_version}). '
+            'Use --ignore-changelog-version ignore this error.'
         )
 
     if SIMULATE is True:
@@ -281,11 +281,11 @@ def update_changelog(release_version: Version, ignore_changelog_version: bool):
             print('* CHANGELOG.rst not found')
 
 
-ISORT = """
-[tool.isort]
-profile = "black"
-line_length = 79
-combine_as_imports = true
+RUFF = """
+[tool.ruff]
+line-length = 79
+format.quote-style = 'single'
+isort.combine-as-imports = true
 """
 
 # 66.1.0 is required for correct handling of sdist files, see:
@@ -299,7 +299,7 @@ requires = [
     "wheel",
 ]
 build-backend = "setuptools.build_meta"
-{ISORT}
+{RUFF}
 """
 
 
@@ -349,26 +349,26 @@ def check_build_system(pyproject):
     check_build_system_requires(build_system)
 
 
-def check_isort(tool: dict):
+def check_ruff(tool: dict):
     try:
-        isort = tool['isort']
+        ruff = tool['ruff']
     except KeyError:
         with open('pyproject.toml', 'a', encoding='utf8') as f:
-            f.write(ISORT)
-        raise RuntimeError('[tool.isort] was added to pyproject.toml')
+            f.write(RUFF)
+        raise RuntimeError('[tool.ruff] was added to pyproject.toml')
 
-    if isort != {
-        'profile': 'black',
-        'line_length': 79,
-        'combine_as_imports': True,
+    if ruff != {
+        'line-length': 79,
+        'format': {'quote-style': 'single'},
+        'isort': {'combine-as-imports': True},
     }:
         raise RuntimeError(
-            f'[tool.isort] is parameters are incomplete. Add {ISORT}'
+            f'[tool.ruff] parameters are incomplete/incorrect. Add {RUFF}'
         )
 
-    output = check_output(['isort', '.'])
-    if b'Fixing ' in output:
-        raise RuntimeError('commit isort modifications')
+    output = check_output(['ruff', 'format', '.'])
+    if b' reformatted' in output:
+        raise RuntimeError('commit ruff modifications')
 
 
 def check_setuptools(setuptools: dict) -> str:
@@ -400,7 +400,7 @@ def check_setuptools(setuptools: dict) -> str:
 
 def check_tool(pyproject: dict) -> str:
     tool = pyproject['tool']
-    check_isort(tool)
+    check_ruff(tool)
     return check_setuptools(tool['setuptools'])
 
 
@@ -450,7 +450,7 @@ def reset_and_delete_tag(release_version):
 def version_callback(value: bool):
     if not value:
         return
-    print(f"{__version__}")
+    print(f'{__version__}')
     raise typer.Exit()
 
 
@@ -464,7 +464,7 @@ def main(
     ignore_git_status: bool = False,
     timeout: int = 30,
     version: bool = typer.Option(  # noqa, version is not used inside function
-        None, "--version", callback=version_callback
+        None, '--version', callback=version_callback
     ),
 ):
     global SIMULATE
