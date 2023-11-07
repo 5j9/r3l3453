@@ -105,6 +105,9 @@ def check_no_old_conf() -> None:
             'See https://setuptools.pypa.io/en/latest/userguide/datafiles.html#summary for more info.'
         )
 
+    if 'pytest.ini' in files:
+        raise RuntimeError(f'Merge pytest.ini into pyproject.toml: {PYTEST}')
+
 
 @contextmanager
 def read_version_file(
@@ -288,6 +291,12 @@ format.quote-style = 'single'
 isort.combine-as-imports = true
 """
 
+# keep in sync with <1>
+PYTEST = """
+[tool.pytest.ini_options]
+addopts = '--quiet --showlocals --tb=native'
+"""
+
 # 66.1.0 is required for correct handling of sdist files, see:
 # https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
 REQUIRED_SETUPTOOLS_VERSION = '66.1.0'
@@ -295,10 +304,10 @@ REQUIRED_SETUPTOOLS_VERSION = '66.1.0'
 PYPROJECT_TOML = f"""\
 [build-system]
 requires = [
-    "setuptools>={REQUIRED_SETUPTOOLS_VERSION}",
-    "wheel",
+    'setuptools>={REQUIRED_SETUPTOOLS_VERSION}',
+    'wheel',
 ]
-build-backend = "setuptools.build_meta"
+build-backend = 'setuptools.build_meta'
 {RUFF}
 """
 
@@ -400,9 +409,19 @@ def check_setuptools(setuptools: dict) -> str:
     return attr.removesuffix('.__version__') + '/__init__.py'
 
 
+def check_pytest(tool: dict):
+    if (d := tool.get('pytest')) is None:
+        return
+    # keep in sync with <1>
+    expected = {'ini_options': {'addopts': '--quiet --showlocals --tb=native'}}
+    if d != expected:
+        raise RuntimeError(f'unexpected pytest options: {d} != {expected}')
+
+
 def check_tool(pyproject: dict) -> str:
     tool = pyproject['tool']
     check_ruff(tool)
+    check_pytest(tool)
     return check_setuptools(tool['setuptools'])
 
 
