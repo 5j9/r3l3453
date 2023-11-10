@@ -316,9 +316,7 @@ def check_build_system_requires(build_system):
     try:
         requires = build_system['requires']
     except KeyError:
-        raise RuntimeError(
-            f'[build-system] requires not found {PYPROJECT_TOML}'
-        )
+        raise SystemExit(f'[build-system] requires not found {PYPROJECT_TOML}')
 
     for i in requires:
         if i.startswith('setuptools'):
@@ -329,7 +327,7 @@ def check_build_system_requires(build_system):
         d_ver = None
 
     if d_ver is None or (d_ver < Version.parse(REQUIRED_SETUPTOOLS_VERSION)):
-        raise RuntimeError(
+        raise SystemExit(
             f'[build-system] requires `setuptools>={REQUIRED_SETUPTOOLS_VERSION}` {PYPROJECT_TOML}'
         )
 
@@ -341,7 +339,7 @@ def check_build_system_backend(build_system):
         backend = None
 
     if backend != 'setuptools.build_meta':
-        raise RuntimeError(
+        raise SystemExit(
             '`build-backend = "setuptools.build_meta"` not found in '
             f'[build-system] of pyproject.toml {PYPROJECT_TOML}'
         )
@@ -351,7 +349,7 @@ def check_build_system(pyproject):
     try:
         build_system = pyproject['build-system']
     except KeyError:
-        raise RuntimeError(
+        raise SystemExit(
             f'[build-system] not found in pyproject.toml {PYPROJECT_TOML}'
         )
     check_build_system_backend(build_system)
@@ -360,32 +358,32 @@ def check_build_system(pyproject):
 
 def check_ruff(tool: dict):
     if 'isort' in tool:
-        raise RuntimeError(f'use ruff instead of isort:{RUFF}')
+        raise SystemExit(f'use ruff instead of isort:{RUFF}')
     try:
         ruff = tool['ruff']
     except KeyError:
         with open('pyproject.toml', 'a', encoding='utf8') as f:
             f.write(RUFF)
-        raise RuntimeError('[tool.ruff] was added to pyproject.toml')
+        raise SystemExit('[tool.ruff] was added to pyproject.toml')
 
     if ruff != {
         'line-length': 79,
         'format': {'quote-style': 'single'},
         'isort': {'combine-as-imports': True},
     }:
-        raise RuntimeError(
+        raise SystemExit(
             f'[tool.ruff] parameters are incomplete/incorrect. Add {RUFF}'
         )
 
     output = check_output(['ruff', 'format', '.'])
     if b' reformatted' in output:
-        raise RuntimeError('commit ruff modifications')
+        raise SystemExit('commit ruff modifications')
 
 
 def check_setuptools(setuptools: dict) -> str:
     include_package_data = setuptools.get('include-package-data')
     if include_package_data is True:
-        raise RuntimeError(
+        raise SystemExit(
             '`include-package-data = true` only works in conjunction with `MANIFEST.in`/`setuptools-scm`;\n'
             'Set it to `false` and use `[tool.setuptools.package-data]` instead:\n'
             '```\n'
@@ -395,7 +393,7 @@ def check_setuptools(setuptools: dict) -> str:
             'See https://setuptools.pypa.io/en/latest/userguide/datafiles.html#summary for more info.'
         )
     if include_package_data is None:
-        raise RuntimeError(
+        raise SystemExit(
             'include-package-data is implicitly set to `true`, we do not want that.\n'
             'Add `include-package-data = false` to `[tool.setuptools]`.'
             'If you need to include data files, use `[tool.setuptools.package-data]` instead:\n'
@@ -415,7 +413,7 @@ def check_pytest(tool: dict):
     # keep in sync with <1>
     expected = {'ini_options': {'addopts': '--quiet --showlocals --tb=native'}}
     if d != expected:
-        raise RuntimeError(f'unexpected pytest options: {d} != {expected}')
+        raise SystemExit(f'unexpected pytest options: {d} != {expected}')
 
 
 def check_tool(pyproject: dict) -> str:
@@ -445,7 +443,7 @@ def check_git_status(ignore_git_status: bool):
         if ignore_git_status:
             print(f'* ignoring git {status=}')
         else:
-            raise RuntimeError(
+            raise SystemExit(
                 'git status is not clean. '
                 'Use --ignore-git-status to ignore this error.'
             )
@@ -456,7 +454,7 @@ def check_git_status(ignore_git_status: bool):
         if ignore_git_status:
             print(f'* ignoring git branch ({branch} != master)')
         else:
-            raise RuntimeError(
+            raise SystemExit(
                 f'git is on {branch} branch. '
                 'Use --ignore-git-status to ignore this error.'
             )
