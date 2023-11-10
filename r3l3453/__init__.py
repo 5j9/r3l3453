@@ -377,7 +377,9 @@ def check_ruff(tool: dict):
 
     output = check_output(['ruff', 'format', '.'])
     if b' reformatted' in output:
-        raise SystemExit('commit ruff modifications')
+        raise SystemExit('commit ruff format modifications')
+    elif b' left unchanged' not in output:
+        warning(f'Unexpected ruff format output: `{output.rstrip().decode()}`')
 
 
 def check_setuptools(setuptools: dict) -> str:
