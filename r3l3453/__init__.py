@@ -99,12 +99,6 @@ def check_no_old_conf() -> None:
     if 'setup.cfg' in files:
         check_setup_cfg()
 
-    if 'MANIFEST.in' in files:
-        raise RuntimeError(
-            'Use `package-data` and `exclude-package-data` instead of `MANIFEST.in`.\n'
-            'See https://setuptools.pypa.io/en/latest/userguide/datafiles.html#summary for more info.'
-        )
-
     if 'pytest.ini' in files:
         raise SystemExit(f'Merge pytest.ini into pyproject.toml: {PYTEST}')
 
@@ -383,28 +377,6 @@ def check_ruff(tool: dict):
 
 
 def check_setuptools(setuptools: dict) -> str:
-    include_package_data = setuptools.get('include-package-data')
-    if include_package_data is True:
-        raise SystemExit(
-            '`include-package-data = true` only works in conjunction with `MANIFEST.in`/`setuptools-scm`;\n'
-            'Set it to `false` and use `[tool.setuptools.package-data]` instead:\n'
-            '```\n'
-            '[tool.setuptools.package-data]\n'
-            'mypkg = ["*.txt", "*.rst"]\n'
-            '```\n'
-            'See https://setuptools.pypa.io/en/latest/userguide/datafiles.html#summary for more info.'
-        )
-    if include_package_data is None:
-        raise SystemExit(
-            'include-package-data is implicitly set to `true`, we do not want that.\n'
-            'Add `include-package-data = false` to `[tool.setuptools]`.'
-            'If you need to include data files, use `[tool.setuptools.package-data]` instead:\n'
-            '```\n'
-            '[tool.setuptools.package-data]\n'
-            'mypkg = ["*.txt", "*.rst"]\n'
-            '```\n'
-            'See https://setuptools.pypa.io/en/latest/userguide/datafiles.html#summary for more info.'
-        )
     attr: str = setuptools['dynamic']['version']['attr']
     return attr.removesuffix('.__version__') + '/__init__.py'
 
