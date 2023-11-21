@@ -64,7 +64,7 @@ class VersionFile:
 def check_setup_cfg():
     setup_cfg = open('setup.cfg', 'r', encoding='utf8').read()
     if 'tests_require' in setup_cfg:
-        raise RuntimeError(
+        raise SystemExit(
             '`tests_require` in setup.cfg is deprecated; '
             'use the following sample instead:'
             '\n```'
@@ -75,14 +75,14 @@ def check_setup_cfg():
             '\n```'
         )
     if 'setup_requires' in setup_cfg:
-        raise RuntimeError('`setup_requires` is deprecated')
-    raise RuntimeError('convert setup.cfg to pyproject.toml using `ini2toml`')
+        raise SystemExit('`setup_requires` is deprecated')
+    raise SystemExit('convert setup.cfg to pyproject.toml using `ini2toml`')
 
 
 def check_no_old_conf() -> None:
     files = {de.name for de in os.scandir('.') if de.is_file()}
     if 'r3l3453.json' in files:
-        raise RuntimeError(
+        raise SystemExit(
             'Remove r3l3453.json as it is not needed anymore.\n'
             'Version path should be specified in setup.cfg.\n'
             '[metadata]\n'
@@ -90,7 +90,7 @@ def check_no_old_conf() -> None:
         )
 
     if 'setup.py' in files:
-        raise RuntimeError(
+        raise SystemExit(
             '\nsetup.py was found\nTry `setuptools-py2cfg` to '
             'convert setup.py to setup.cfg and '
             'then convert setup.cfg to pyproject.toml using `ini2toml`'
@@ -106,7 +106,7 @@ def check_no_old_conf() -> None:
         )
 
     if 'pytest.ini' in files:
-        raise RuntimeError(f'Merge pytest.ini into pyproject.toml: {PYTEST}')
+        raise SystemExit(f'Merge pytest.ini into pyproject.toml: {PYTEST}')
 
 
 @contextmanager
@@ -231,7 +231,7 @@ def check_update_changelog(
     if unreleased is None:
         v_match = match(rb'v([\d.]+\w+)\n', changelog)
         if v_match is None:
-            raise RuntimeError(
+            raise SystemExit(
                 'CHANGELOG.rst does not start with a version or "Unreleased"'
             )
         changelog_version = Version.parse(v_match[1].decode())
@@ -241,7 +241,7 @@ def check_update_changelog(
         if ignore_changelog_version is not False:
             print('* ignoring non-matching CHANGELOG version')
             return True
-        raise RuntimeError(
+        raise SystemExit(
             f"CHANGELOG's version ({changelog_version}) does not "
             f'match release_version ({release_version}). '
             'Use --ignore-changelog-version ignore this error.'
