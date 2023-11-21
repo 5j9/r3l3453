@@ -385,9 +385,9 @@ def check_pytest(tool: dict):
     if (d := tool.get('pytest')) is None:
         return
     # keep in sync with <1>
-    expected = {'ini_options': {'addopts': '--quiet --showlocals --tb=native'}}
-    if d != expected:
-        raise SystemExit(f'unexpected pytest options: {d} != {expected}')
+    expected = '--quiet --showlocals --tb=native'
+    if (addopts := d.get('ini_options', d).get('addopts')) != expected:
+        raise SystemExit(f'unexpected addopts: {addopts} != {expected}')
 
 
 def check_tool(pyproject: dict) -> str:
