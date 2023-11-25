@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 __version__ = '0.31.1.dev0'
-import os
+from os import chdir, listdir
 import tomllib
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
@@ -79,9 +79,10 @@ def check_setup_cfg():
     raise SystemExit('convert setup.cfg to pyproject.toml using `ini2toml`')
 
 
-def check_no_old_conf() -> None:
-    files = {de.name for de in os.scandir('.') if de.is_file()}
-    if 'r3l3453.json' in files:
+def check_no_old_conf(ignore_dist: bool) -> None:
+    entries = listdir('.')
+
+    if 'r3l3453.json' in entries:
         raise SystemExit(
             'Remove r3l3453.json as it is not needed anymore.\n'
             'Version path should be specified in setup.cfg.\n'
@@ -89,18 +90,29 @@ def check_no_old_conf() -> None:
             'version = attr: package.__version__'
         )
 
-    if 'setup.py' in files:
+    if 'setup.py' in entries:
         raise SystemExit(
             '\nsetup.py was found\nTry `setuptools-py2cfg` to '
             'convert setup.py to setup.cfg and '
             'then convert setup.cfg to pyproject.toml using `ini2toml`'
         )
 
-    if 'setup.cfg' in files:
+    if 'setup.cfg' in entries:
         check_setup_cfg()
 
-    if 'pytest.ini' in files:
+    if 'pytest.ini' in entries:
         raise SystemExit(f'Merge pytest.ini into pyproject.toml: {PYTEST}')
+
+    if (
+        ignore_dist is False
+        and 'dist' in entries
+        and (dist_entries := listdir('./dist'))
+    ):
+        raise SystemExit(
+            '`dist` directory exists and is not empty. Entries:\n'
+            f'{dist_entries}\n'
+            'Clear it or use `--ignore-dist` option.'
+        )
 
 
 @contextmanager
@@ -455,6 +467,7 @@ def main(
     path: str = None,
     ignore_changelog_version: bool = False,
     ignore_git_status: bool = False,
+    ignore_dist: bool = False,
     timeout: int = 30,
     version: bool = typer.Option(  # noqa, version is not used inside function
         None, '--version', callback=version_callback
@@ -464,9 +477,9 @@ def main(
     SIMULATE = simulate
     print(f'* r3l3453 v{__version__}')
     if path is not None:
-        os.chdir(path)
+        chdir(path)
 
-    check_no_old_conf()
+    check_no_old_conf(ignore_dist)
     version_path = check_pyproject_toml()
     check_git_status(ignore_git_status)
 
