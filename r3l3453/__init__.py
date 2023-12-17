@@ -14,7 +14,6 @@ from subprocess import (
     check_output,
 )
 
-import typer
 from parver import Version
 
 
@@ -456,10 +455,11 @@ def version_callback(value: bool):
     if not value:
         return
     print(f'{__version__}')
-    raise typer.Exit()
+    raise SystemExit
 
 
 def main(
+    *,
     rtype: ReleaseType = None,
     upload: bool = True,
     push: bool = True,
@@ -469,9 +469,6 @@ def main(
     ignore_git_status: bool = False,
     ignore_dist: bool = False,
     timeout: int = 30,
-    version: bool = typer.Option(  # noqa, version is not used inside function
-        None, '--version', callback=version_callback
-    ),
 ):
     global SIMULATE
     SIMULATE = simulate
@@ -507,4 +504,8 @@ def main(
 
 
 def console_scripts_entry_point():
-    typer.run(main)
+    from cyclopts import App
+
+    app = App(version=__version__)
+    app.default(main)
+    app()
