@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 __version__ = '0.31.1.dev0'
-from os import chdir, listdir
 import tomllib
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
 from logging import warning
+from os import chdir, listdir
 from re import IGNORECASE, match, search
 from shutil import rmtree
 from subprocess import (
@@ -380,11 +380,18 @@ def check_ruff(tool: dict):
             f'[tool.ruff] parameters are incomplete/incorrect. Add {RUFF}'
         )
 
-    output = check_output(['ruff', 'format', '.'])
-    if b' reformatted' in output:
+    format_output = check_output(['ruff', 'format', '.'])
+    if b' reformatted' in format_output:
         raise SystemExit('commit ruff format modifications')
-    elif b' left unchanged' not in output:
-        warning(f'Unexpected ruff format output: `{output.rstrip().decode()}`')
+    elif b' left unchanged' not in format_output:
+        warning(
+            f'Unexpected ruff format output: `{format_output.rstrip().decode()}`'
+        )
+
+    # ruff may add a unified command for linting and formatting.
+    # Waiting for https://github.com/astral-sh/ruff/issues/8232 .
+    if check_output(['ruff', 'check', '--fix', '--select', 'I', '.']):
+        raise SystemExit('commit ruff modifications')
 
 
 def check_setuptools(setuptools: dict) -> str:
