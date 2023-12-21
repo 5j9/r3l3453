@@ -294,6 +294,7 @@ RUFF = """
 line-length = 79
 format.quote-style = 'single'
 isort.combine-as-imports = true
+extend-select = ['I']  # isort
 """
 
 # keep in sync with <1>
@@ -375,9 +376,11 @@ def check_ruff(tool: dict):
         'line-length': 79,
         'format': {'quote-style': 'single'},
         'isort': {'combine-as-imports': True},
+        'extend-select': ['I'],
     }:
         raise SystemExit(
-            f'[tool.ruff] parameters are incomplete/incorrect. Add {RUFF}'
+            '[tool.ruff] parameters are incomplete/incorrect. '
+            f'Add the following: {RUFF}'
         )
 
     format_output = check_output(['ruff', 'format', '.'])

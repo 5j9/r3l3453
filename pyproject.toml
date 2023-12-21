@@ -40,3 +40,4 @@ attr = "r3l3453.__version__"
 line-length = 79
 format.quote-style = 'single'
 isort.combine-as-imports = true
+extend-select = ['I']  # isort
