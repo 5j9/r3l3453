@@ -61,7 +61,7 @@ class VersionFile:
 
 
 def check_setup_cfg():
-    setup_cfg = open('setup.cfg', 'r', encoding='utf8').read()
+    setup_cfg = open('setup.cfg', encoding='utf8').read()
     if 'tests_require' in setup_cfg:
         raise SystemExit(
             '`tests_require` in setup.cfg is deprecated; '
@@ -433,7 +433,7 @@ def check_project(pyproject: dict) -> None:
         )
 
 
-def check_pyproject_toml() -> str:
+def check_pyproject_toml(ignore_build_system) -> str:
     # https://packaging.python.org/tutorials/packaging-projects/
     try:
         with open('pyproject.toml', 'rb') as f:
@@ -444,6 +444,9 @@ def check_pyproject_toml() -> str:
         raise FileNotFoundError('pyproject.toml was not found; sample created')
 
     check_project(pyproject)
+    if ignore_build_system is True:
+        return ''
+
     check_build_system(pyproject)
     return check_tool(pyproject)
 
@@ -495,6 +498,7 @@ def main(
     ignore_git_status: bool = False,
     ignore_dist: bool = False,
     timeout: int = 30,
+    ignore_build_system: bool = False,
 ):
     global SIMULATE
     SIMULATE = simulate
@@ -503,7 +507,11 @@ def main(
         chdir(path)
 
     check_no_old_conf(ignore_dist)
-    version_path = check_pyproject_toml()
+    version_path = check_pyproject_toml(ignore_build_system)
+
+    if ignore_build_system is True:
+        return
+
     check_git_status(ignore_git_status)
 
     with read_version_file(version_path) as version_file:
