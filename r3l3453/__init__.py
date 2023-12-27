@@ -294,7 +294,13 @@ RUFF = """
 line-length = 79
 format.quote-style = 'single'
 isort.combine-as-imports = true
-extend-select = ['I']  # isort
+extend-select = [
+    'I',  # isort
+    'UP',  # pyupgrade
+]
+ignore = [
+    'UP027',  # list comprehensions are faster than generator expressions
+]
 """
 
 # keep in sync with <1>
@@ -376,11 +382,12 @@ def check_ruff(tool: dict):
         'line-length': 79,
         'format': {'quote-style': 'single'},
         'isort': {'combine-as-imports': True},
-        'extend-select': ['I'],
+        'extend-select': ['I', 'UP'],
+        'ignore': ['UP027'],
     }:
         raise SystemExit(
-            '[tool.ruff] parameters are incomplete/incorrect. '
-            f'Add the following: {RUFF}'
+            '[tool.ruff] parameters are incomplete/unexpected. '
+            f'Use the following: {RUFF}'
         )
 
     format_output = check_output(['ruff', 'format', '.'])
@@ -418,6 +425,14 @@ def check_tool(pyproject: dict) -> str:
     return check_setuptools(tool['setuptools'])
 
 
+def check_project(pyproject: dict) -> None:
+    project = pyproject.get('project')
+    if project is None or project.get('requires-python') is None:
+        raise SystemExit(
+            "Add minimum required Python version using `project.requires-python = '>=3.XX'`"
+        )
+
+
 def check_pyproject_toml() -> str:
     # https://packaging.python.org/tutorials/packaging-projects/
     try:
@@ -428,6 +443,7 @@ def check_pyproject_toml() -> str:
             f.write(PYPROJECT_TOML)
         raise FileNotFoundError('pyproject.toml was not found; sample created')
 
+    check_project(pyproject)
     check_build_system(pyproject)
     return check_tool(pyproject)
 
