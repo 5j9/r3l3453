@@ -418,10 +418,12 @@ def check_pytest(tool: dict):
         raise SystemExit(f'unexpected addopts: {addopts} != {expected}')
 
 
-def check_tool(pyproject: dict) -> str:
+def check_tool(pyproject: dict, ignore_build_system: bool) -> str:
     tool = pyproject['tool']
     check_ruff(tool)
     check_pytest(tool)
+    if ignore_build_system is True:
+        return ''
     return check_setuptools(tool['setuptools'])
 
 
@@ -444,11 +446,10 @@ def check_pyproject_toml(ignore_build_system) -> str:
         raise FileNotFoundError('pyproject.toml was not found; sample created')
 
     check_project(pyproject)
-    if ignore_build_system is True:
-        return ''
 
-    check_build_system(pyproject)
-    return check_tool(pyproject)
+    if ignore_build_system is False:
+        check_build_system(pyproject)
+    return check_tool(pyproject, ignore_build_system)
 
 
 def check_git_status(ignore_git_status: bool):
