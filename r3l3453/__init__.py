@@ -361,9 +361,8 @@ def check_build_system(pyproject):
     try:
         build_system = pyproject['build-system']
     except KeyError:
-        raise SystemExit(
-            f'[build-system] not found in pyproject.toml {PYPROJECT_TOML}'
-        )
+        print('* skipping [build-system] checks (not found)')
+        return
     check_build_system_backend(build_system)
     check_build_system_requires(build_system)
 
@@ -418,13 +417,14 @@ def check_pytest(tool: dict):
         raise SystemExit(f'unexpected addopts: {addopts} != {expected}')
 
 
-def check_tool(pyproject: dict, ignore_build_system: bool) -> str:
+def check_tool(pyproject: dict) -> str | None:
     tool = pyproject['tool']
     check_ruff(tool)
     check_pytest(tool)
-    if ignore_build_system is True:
-        return ''
-    return check_setuptools(tool['setuptools'])
+    if (setuptools := tool.get('setuptools')) is None:
+        print('* skipping setuptools checks (not found)')
+        return None
+    return check_setuptools(setuptools)
 
 
 def check_project(pyproject: dict) -> None:
@@ -435,7 +435,7 @@ def check_project(pyproject: dict) -> None:
         )
 
 
-def check_pyproject_toml(ignore_build_system) -> str:
+def check_pyproject_toml() -> str | None:
     # https://packaging.python.org/tutorials/packaging-projects/
     try:
         with open('pyproject.toml', 'rb') as f:
@@ -447,9 +447,8 @@ def check_pyproject_toml(ignore_build_system) -> str:
 
     check_project(pyproject)
 
-    if ignore_build_system is False:
-        check_build_system(pyproject)
-    return check_tool(pyproject, ignore_build_system)
+    check_build_system(pyproject)
+    return check_tool(pyproject)
 
 
 def check_git_status(ignore_git_status: bool):
@@ -499,7 +498,6 @@ def main(
     ignore_git_status: bool = False,
     ignore_dist: bool = False,
     timeout: int = 30,
-    ignore_build_system: bool = False,
 ):
     global SIMULATE
     SIMULATE = simulate
@@ -508,9 +506,10 @@ def main(
         chdir(path)
 
     check_no_old_conf(ignore_dist)
-    version_path = check_pyproject_toml(ignore_build_system)
+    version_path = check_pyproject_toml()
 
-    if ignore_build_system is True:
+    if version_path is None:
+        # [build-system] and/or setuptools checks have been skipped
         return
 
     check_git_status(ignore_git_status)
