@@ -413,7 +413,7 @@ def check_pytest(tool: dict):
     if (d := tool.get('pytest')) is None:
         return
     # keep in sync with <1>
-    expected = '--quiet --showlocals --tb=native'
+    expected = '--quiet --tb=short'
     if (addopts := d.get('ini_options', d).get('addopts')) != expected:
         raise SystemExit(f'unexpected addopts: {addopts} != {expected}')
 
