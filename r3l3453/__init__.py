@@ -334,7 +334,10 @@ def check_build_system_requires(build_system):
     for i in requires:
         if i.startswith('setuptools'):
             _, _, d_ver = i.partition('>=')
-            d_ver = Version.parse(d_ver)
+            if d_ver:
+                d_ver = Version.parse(d_ver)
+            else:
+                d_ver = None
             break
     else:
         d_ver = None
