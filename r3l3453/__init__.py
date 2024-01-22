@@ -300,6 +300,7 @@ extend-select = [
 ]
 ignore = [
     'UP027',  # list comprehensions are faster than generator expressions
+    'E721',  # Do not compare types, use `isinstance()`; I know what I'm doing.
 ]
 """
 
@@ -382,7 +383,7 @@ def check_ruff(tool: dict):
         'format': {'quote-style': 'single'},
         'isort': {'combine-as-imports': True},
         'extend-select': ['I', 'UP'],
-        'ignore': ['UP027'],
+        'ignore': ['UP027', 'E721'],
     }:
         raise SystemExit(
             '[tool.ruff] parameters are incomplete/unexpected. '
