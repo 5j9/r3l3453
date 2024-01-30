@@ -307,7 +307,7 @@ ignore = [
 # keep in sync with <1>
 PYTEST = """
 [tool.pytest.ini_options]
-addopts = '--quiet --showlocals --tb=native'
+addopts = '--quiet --tb=short'
 """
 
 # 66.1.0 is required for correct handling of sdist files, see:
