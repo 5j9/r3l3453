@@ -13,7 +13,9 @@ from subprocess import (
     check_call,
     check_output,
 )
+from typing import Annotated
 
+from cyclopts import App, Parameter
 from parver import Version
 
 
@@ -494,7 +496,7 @@ def main(
     rtype: ReleaseType = None,
     upload: bool = True,
     push: bool = True,
-    simulate: bool = False,
+    simulate: Annotated[bool, Parameter(('--simulate', '-s'))] = False,
     path: str = None,
     ignore_changelog_version: bool = False,
     ignore_git_status: bool = False,
@@ -540,8 +542,6 @@ def main(
 
 
 def console_scripts_entry_point():
-    from cyclopts import App
-
     app = App(version=__version__)
     app.default(main)
     app()
