@@ -84,9 +84,7 @@ def check_no_old_conf(ignore_dist: bool) -> None:
     if 'r3l3453.json' in entries:
         raise SystemExit(
             'Remove r3l3453.json as it is not needed anymore.\n'
-            'Version path should be specified in setup.cfg.\n'
-            '[metadata]\n'
-            'version = attr: package.__version__'
+            'Version path should be specified in pyproject.toml.'
         )
 
     if 'setup.py' in entries:
