@@ -16,7 +16,7 @@ readme = 'README.rst'
 requires-python = '>={{cookiecutter.requires_python}}'
 dependencies = []
 dynamic = ['version']
-license = {text = "{{cookiecutter.license}}"}
+license = {text = '{{cookiecutter.license}}'}
 
 [tool.setuptools]
 include-package-data = false
