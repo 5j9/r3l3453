@@ -1,0 +1,6 @@
+{
+    "project_name": "Project name",
+    "description": "Short description for your project",
+    "requires_python": "3.12",
+    "license": ["Apache-2.0", "GPL-3.0", "GPL-2.0"]
+}

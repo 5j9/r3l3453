@@ -491,6 +491,10 @@ def version_callback(value: bool):
     raise SystemExit
 
 
+app = App(version=__version__)
+
+
+@app.default
 def main(
     *,
     rtype: ReleaseType = None,
@@ -541,7 +545,15 @@ def main(
             check_call(('git', 'push', '--follow-tags'))
 
 
+@app.command
+def init():
+    from pathlib import Path
+
+    from cookiecutter.main import cookiecutter
+
+    cookiecutter_dir = Path(__file__).parent / 'cookiecutter'
+    cookiecutter(str(cookiecutter_dir))
+
+
 def console_scripts_entry_point():
-    app = App(version=__version__)
-    app.default(main)
     app()
