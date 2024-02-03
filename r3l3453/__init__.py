@@ -395,7 +395,12 @@ def check_pyproject_toml() -> TOMLDocument:
 
 
 def get_version_path(pyproject: TOMLDocument) -> str | None:
-    name = pyproject['project'].get('name')
+    try:
+        # Package may have different names for installation and import, see:
+        # https://flit.pypa.io/en/stable/pyproject_toml.html#module-section
+        name = pyproject['tool']['flit']['module']['name']
+    except KeyError:
+        name = pyproject['project'].get('name')
     if name is None:
         return None
     return f'{name}/__init__.py'
