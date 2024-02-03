@@ -1,10 +1,8 @@
-#!/usr/bin/env bash
 __version__ = '0.31.1.dev0'
-import tomllib
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
-from logging import warning
-from os import chdir, listdir
+from logging import debug, info, warning
+from os import chdir, listdir, remove
 from re import IGNORECASE, match, search
 from shutil import rmtree
 from subprocess import (
@@ -17,6 +15,7 @@ from typing import Annotated
 
 from cyclopts import App, Parameter
 from parver import Version
+from tomlkit import TOMLDocument, parse
 
 
 class ReleaseType(Enum):
@@ -84,10 +83,11 @@ def check_no_old_conf(ignore_dist: bool) -> None:
     entries = listdir('.')
 
     if 'r3l3453.json' in entries:
-        raise SystemExit(
-            'Remove r3l3453.json as it is not needed anymore.\n'
+        warning(
+            'Removed r3l3453.json as it is not needed anymore.\n'
             'Version path should be specified in pyproject.toml.'
         )
+        remove('r3l3453.json')
 
     if 'setup.py' in entries:
         raise SystemExit(
@@ -100,7 +100,10 @@ def check_no_old_conf(ignore_dist: bool) -> None:
         check_setup_cfg()
 
     if 'pytest.ini' in entries:
-        raise SystemExit(f'Merge pytest.ini into pyproject.toml: {PYTEST}')
+        warning(
+            'Removed pytest.ini; settings will be added to pyproject.toml.'
+        )
+        remove('pytest.ini')
 
     if (
         ignore_dist is False
@@ -210,16 +213,14 @@ def commit_and_tag(release_version: Version):
 
 
 def upload_to_pypi(timeout):
-    build = ('python', '-m', 'build', '--no-isolation')
-    twine = ('twine', 'upload', 'dist/*')
+    publish = ('python', '-m', 'flit', 'publish')
     if SIMULATE is True:
-        print(f"* {' '.join(build)}\n* {' '.join(twine)}")
+        print(f"* {' '.join(publish)}")
         return
     try:
-        check_call(build)
         while True:
             try:
-                check_call(twine, timeout=timeout)
+                check_call(publish, timeout=timeout)
             except TimeoutExpired:
                 print('\n* TimeoutExpired: will retry until success')
                 continue
@@ -289,113 +290,33 @@ def update_changelog(release_version: Version, ignore_changelog_version: bool):
             print('* CHANGELOG.rst not found')
 
 
-RUFF = """
-[tool.ruff]
-line-length = 79
-format.quote-style = 'single'
-isort.combine-as-imports = true
-extend-select = [
-    'I',  # isort
-    'UP',  # pyupgrade
-]
-ignore = [
-    'UP027',  # list comprehensions are faster than generator expressions
-    'E721',  # Do not compare types, use `isinstance()`; I know what I'm doing.
-]
-"""
-
-# keep in sync with <1>
-PYTEST = """
-[tool.pytest.ini_options]
-addopts = '--quiet --tb=short'
-"""
-
-# 66.1.0 is required for correct handling of sdist files, see:
-# https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
-REQUIRED_SETUPTOOLS_VERSION = '66.1.0'
-
-PYPROJECT_TOML = f"""\
-[build-system]
-requires = [
-    'setuptools>={REQUIRED_SETUPTOOLS_VERSION}',
-    'wheel',
-]
-build-backend = 'setuptools.build_meta'
-{RUFF}
-"""
+with open(
+    f'{__file__}/../cookiecutter/{{{{cookiecutter.project_name}}}}/pyproject_template.toml',
+    encoding='utf8',
+) as f:
+    cc_pyproject_text = f.read()
+cc_pyproject = parse(cc_pyproject_text)
 
 
-def check_build_system_requires(build_system):
-    try:
-        requires = build_system['requires']
-    except KeyError:
-        raise SystemExit(f'[build-system] requires not found {PYPROJECT_TOML}')
-
-    for i in requires:
-        if i.startswith('setuptools'):
-            _, _, d_ver = i.partition('>=')
-            if d_ver:
-                d_ver = Version.parse(d_ver)
-            else:
-                d_ver = None
-            break
-    else:
-        d_ver = None
-
-    if d_ver is None or (d_ver < Version.parse(REQUIRED_SETUPTOOLS_VERSION)):
-        raise SystemExit(
-            f'[build-system] requires `setuptools>={REQUIRED_SETUPTOOLS_VERSION}` {PYPROJECT_TOML}'
-        )
-
-
-def check_build_system_backend(build_system):
-    try:
-        backend = build_system['build-backend']
-    except KeyError:
-        backend = None
-
-    if backend != 'setuptools.build_meta':
-        raise SystemExit(
-            '`build-backend = "setuptools.build_meta"` not found in '
-            f'[build-system] of pyproject.toml {PYPROJECT_TOML}'
-        )
-
-
-def check_build_system(pyproject):
+def check_build_system(pyproject: TOMLDocument):
     try:
         build_system = pyproject['build-system']
     except KeyError:
-        print('* skipping [build-system] checks (not found)')
+        info('skipping [build-system] (not found)')
         return
-    check_build_system_backend(build_system)
-    check_build_system_requires(build_system)
+    build_system['build-backend'] = cc_pyproject['build-system']
 
 
-def check_ruff(tool: dict):
+def check_ruff(tool: TOMLDocument):
     if 'isort' in tool:
-        raise SystemExit(f'use ruff instead of isort:{RUFF}')
-    try:
-        ruff = tool['ruff']
-    except KeyError:
-        with open('pyproject.toml', 'a', encoding='utf8') as f:
-            f.write(RUFF)
-        raise SystemExit('[tool.ruff] was added to pyproject.toml')
+        del tool['isort']
+        warning('[isort] was removed from pyproject; use ruff instead.')
 
-    if ruff != {
-        'line-length': 79,
-        'format': {'quote-style': 'single'},
-        'isort': {'combine-as-imports': True},
-        'extend-select': ['I', 'UP'],
-        'ignore': ['UP027', 'E721'],
-    }:
-        raise SystemExit(
-            '[tool.ruff] parameters are incomplete/unexpected. '
-            f'Use the following: {RUFF}'
-        )
+    tool['ruff'] = cc_pyproject['tool']['ruff']
 
     format_output = check_output(['ruff', 'format', '.'])
     if b' reformatted' in format_output:
-        raise SystemExit('commit ruff format modifications')
+        raise warning('ruff reformatted files')
     elif b' left unchanged' not in format_output:
         warning(
             f'Unexpected ruff format output: `{format_output.rstrip().decode()}`'
@@ -404,55 +325,80 @@ def check_ruff(tool: dict):
     # ruff may add a unified command for linting and formatting.
     # Waiting for https://github.com/astral-sh/ruff/issues/8232 .
     if check_output(['ruff', 'check', '--fix', '--select', 'I', '.']):
-        raise SystemExit('commit ruff modifications')
+        warning('ruff check --fix returned non-zero')
 
 
-def check_setuptools(setuptools: dict) -> str:
-    attr: str = setuptools['dynamic']['version']['attr']
-    return attr.removesuffix('.__version__') + '/__init__.py'
+def check_pytest(tool: TOMLDocument):
+    tool['pytest'] = cc_pyproject['tool']['pytest']
 
 
-def check_pytest(tool: dict):
-    if (d := tool.get('pytest')) is None:
-        return
-    # keep in sync with <1>
-    expected = '--quiet --tb=short'
-    if (addopts := d.get('ini_options', d).get('addopts')) != expected:
-        raise SystemExit(f'unexpected addopts: {addopts} != {expected}')
-
-
-def check_tool(pyproject: dict) -> str | None:
+def check_tool(pyproject: TOMLDocument) -> None:
     tool = pyproject['tool']
     check_ruff(tool)
     check_pytest(tool)
-    if (setuptools := tool.get('setuptools')) is None:
-        print('* skipping setuptools checks (not found)')
-        return None
-    return check_setuptools(setuptools)
+    if tool.get('setuptools') is not None:
+        warning('Removing setuptools from pyproject; use flit instead.')
+        del tool['setuptools']
 
 
-def check_project(pyproject: dict) -> None:
+def check_project(pyproject: TOMLDocument) -> None:
     project = pyproject.get('project')
-    if project is None or project.get('requires-python') is None:
+    if project is None:
+        pyproject['project'] = cc_pyproject['project']
         raise SystemExit(
-            "Add minimum required Python version using `project.requires-python = '>=3.XX'`"
+            'pyproject.toml did not have a [project] section. '
+            '`requires-python` field is required.'
         )
+    if project.get('requires-python') is None:
+        required_python = input(
+            'What is the minimum required python version for this project? (e.g. 3.12)\n'
+        )
+        project['requires-python'] = required_python
+    if project.get('urls') is None:
+        if (name := project.get('name')) is not None:
+            warning('adding Homepage to project urls')
+            project['urls'] = {'Homepage': f'https://github.com/5j9/{name}'}
 
 
-def check_pyproject_toml() -> str | None:
+# @cache
+# def fill_cookiecutter_template(match: Match):
+#     return input(f'Enter the replacement value for {match[0]}:\n')
+
+
+def write_pyproject(s: str):
+    debug('writing to pyproject.toml')
+    with open('pyproject.toml', 'wb') as f:
+        f.write(s.encode())
+
+
+def check_pyproject_toml() -> TOMLDocument:
     # https://packaging.python.org/tutorials/packaging-projects/
     try:
         with open('pyproject.toml', 'rb') as f:
-            pyproject = tomllib.load(f)
+            pyproject_content = f.read()
     except FileNotFoundError:
-        with open('pyproject.toml', 'w', encoding='utf8') as f:
-            f.write(PYPROJECT_TOML)
-        raise FileNotFoundError('pyproject.toml was not found; sample created')
+        write_pyproject(cc_pyproject_text)
+        raise SystemExit('pyproject.toml did not exist. Template was created.')
 
-    check_project(pyproject)
+    pyproject = parse(pyproject_content)
 
-    check_build_system(pyproject)
-    return check_tool(pyproject)
+    try:
+        check_project(pyproject)
+        check_build_system(pyproject)
+        check_tool(pyproject)
+    finally:
+        new_pyproject_content = pyproject.as_string().encode()
+        if new_pyproject_content != pyproject_content:
+            write_pyproject(new_pyproject_content)
+
+    return pyproject
+
+
+def get_version_path(pyproject: TOMLDocument) -> str | None:
+    name = pyproject['project'].get('name')
+    if name is None:
+        return None
+    return f'{name}/__init__.py'
 
 
 def check_git_status(ignore_git_status: bool):
@@ -484,13 +430,6 @@ def reset_and_delete_tag(release_version):
     check_call(['git', 'tag', '--delete', f'v{release_version}'])
 
 
-def version_callback(value: bool):
-    if not value:
-        return
-    print(f'{__version__}')
-    raise SystemExit
-
-
 app = App(version=__version__)
 
 
@@ -514,10 +453,11 @@ def main(
         chdir(path)
 
     check_no_old_conf(ignore_dist)
-    version_path = check_pyproject_toml()
+    pyproject = check_pyproject_toml()
 
+    version_path = get_version_path(pyproject)
     if version_path is None:
-        # [build-system] and/or setuptools checks have been skipped
+        info('skipping rest of checks since version_path was not found')
         return
 
     check_git_status(ignore_git_status)

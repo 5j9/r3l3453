@@ -1,6 +1,9 @@
+# note: working directory for this hook is root of the generated project.
+from os import rename
 from subprocess import run
 
-# note: working directory for this hook is root of the generated project.
+# the original causes error when running ruff
+rename('pyproject_template.toml', 'pyproject.toml')
 run(('git', 'init')).check_returncode()
 run(('git', 'add', '--all')).check_returncode()
 run(

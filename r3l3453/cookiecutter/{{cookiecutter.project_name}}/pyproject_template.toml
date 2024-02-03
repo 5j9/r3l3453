@@ -1,16 +1,10 @@
 [build-system]
-requires = [
-    'setuptools>=66.1.0',
-    'wheel',
-]
-
-build-backend = 'setuptools.build_meta'
+requires = ['flit_core >=3.2,<4']
+build-backend = 'flit_core.buildapi'
 
 [project]
 name = '{{cookiecutter.project_name}}'
-authors = [
-    { name = '5j9', email = '5j9@users.noreply.github.com' },
-]
+authors = [{ name = '5j9', email = '5j9@users.noreply.github.com' }]
 description = '{{cookiecutter.description}}'
 readme = 'README.rst'
 requires-python = '>={{cookiecutter.requires_python}}'
@@ -18,14 +12,8 @@ dependencies = []
 dynamic = ['version']
 license = {text = '{{cookiecutter.license}}'}
 
-[tool.setuptools]
-include-package-data = false
-
-[tool.setuptools.packages.find]
-namespaces = false
-
-[tool.setuptools.dynamic.version]
-attr = '{{cookiecutter.project_name}}.__version__'
+[project.urls]
+Homepage = 'https://github.com/5j9/{{cookiecutter.project_name}}'
 
 [tool.ruff]
 line-length = 79
@@ -39,7 +27,6 @@ ignore = [
     'UP027',  # list comprehensions are faster than generator expressions
     'E721',  # Do not compare types, use `isinstance()`
 ]
-
 
 [tool.pytest.ini_options]
 addopts = '--quiet --tb=short'
