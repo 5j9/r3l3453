@@ -292,10 +292,10 @@ def update_changelog(release_version: Version, ignore_changelog_version: bool):
 
 with open(
     f'{__file__}/../cookiecutter/{{{{cookiecutter.project_name}}}}/pyproject_template.toml',
-    encoding='utf8',
+    'rb',
 ) as f:
-    cc_pyproject_text = f.read()
-cc_pyproject = parse(cc_pyproject_text)
+    cc_pyproject_content = f.read()
+cc_pyproject = parse(cc_pyproject_content)
 
 
 def check_build_system(pyproject: TOMLDocument):
@@ -365,10 +365,10 @@ def check_project(pyproject: TOMLDocument) -> None:
 #     return input(f'Enter the replacement value for {match[0]}:\n')
 
 
-def write_pyproject(s: str):
+def write_pyproject(content: bytes):
     debug('writing to pyproject.toml')
     with open('pyproject.toml', 'wb') as f:
-        f.write(s.encode())
+        f.write(content)
 
 
 def check_pyproject_toml() -> TOMLDocument:
@@ -377,7 +377,7 @@ def check_pyproject_toml() -> TOMLDocument:
         with open('pyproject.toml', 'rb') as f:
             pyproject_content = f.read()
     except FileNotFoundError:
-        write_pyproject(cc_pyproject_text)
+        write_pyproject(cc_pyproject_content)
         raise SystemExit('pyproject.toml did not exist. Template was created.')
 
     pyproject = parse(pyproject_content)
