@@ -105,8 +105,8 @@ def check_no_old_conf(ignore_dist: bool) -> None:
             'For example:\n'
             '```\n'
             '[tool.flit.sdist]\n'
-            'include = ["doc/"]\n'
-            'exclude = ["doc/*.html"]\n'
+            "include = ['doc/']\n"
+            "exclude = ['doc/*.html']\n"
             '```\n'
             'For more infor refer to:\n'
             'https://flit.pypa.io/en/stable/pyproject_toml.html?highlight=exclude#sdist-section'
