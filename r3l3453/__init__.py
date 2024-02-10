@@ -323,7 +323,7 @@ def check_build_system(pyproject: TOMLDocument, entries: set[str]) -> None:
         try:
             exclude = pyproject['tool']['flit']['sdist']['exclude']
         except KeyError:
-            pyproject['tool']['flit'] = cc_pyproject['tool']['flit']
+            pyproject['tool']['flit'].update(cc_pyproject['tool']['flit'])
         else:
             if 'tests' not in exclude:
                 exclude.append('tests')
