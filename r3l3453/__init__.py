@@ -317,7 +317,7 @@ def check_build_system(pyproject: TOMLDocument):
     except KeyError:
         info('skipping [build-system] (not found)')
         return
-    build_system['build-backend'] = cc_pyproject['build-system']
+    build_system |= cc_pyproject['build-system']
 
 
 def check_ruff(tool: TOMLDocument):
