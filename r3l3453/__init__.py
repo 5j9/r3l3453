@@ -79,7 +79,9 @@ def check_setup_cfg():
     raise SystemExit('convert setup.cfg to pyproject.toml using `ini2toml`')
 
 
-def check_no_old_conf(ignore_dist: bool, entries: set[str]) -> None:
+def check_no_old_conf(ignore_dist: bool) -> None:
+    entries = set(listdir('.'))
+
     if 'r3l3453.json' in entries:
         warning(
             'Removed r3l3453.json as it is not needed anymore.\n'
@@ -309,24 +311,14 @@ with open(
 cc_pyproject = parse(cc_pyproject_content)
 
 
-def check_build_system(pyproject: TOMLDocument, entries: set[str]) -> None:
+def check_build_system(pyproject: TOMLDocument) -> None:
     try:
         build_system = pyproject['build-system']
     except KeyError:
         info('skipping [build-system] (not found)')
         return
-
     # https://github.com/sdispater/tomlkit/issues/331
     build_system.update(cc_pyproject['build-system'])
-
-    if 'tests' in entries:
-        try:
-            exclude = pyproject['tool']['flit']['sdist']['exclude']
-        except KeyError:
-            pyproject['tool']['flit'].update(cc_pyproject['tool']['flit'])
-        else:
-            if 'tests' not in exclude:
-                exclude.append('tests')
 
 
 def check_ruff(tool: TOMLDocument):
@@ -393,7 +385,7 @@ def write_pyproject(content: bytes):
         f.write(content)
 
 
-def check_pyproject_toml(entries: set[str]) -> TOMLDocument:
+def check_pyproject_toml() -> TOMLDocument:
     # https://packaging.python.org/tutorials/packaging-projects/
     try:
         with open('pyproject.toml', 'rb') as f:
@@ -406,7 +398,7 @@ def check_pyproject_toml(entries: set[str]) -> TOMLDocument:
 
     try:
         check_project(pyproject)
-        check_build_system(pyproject, entries)
+        check_build_system(pyproject)
         check_tool(pyproject)
     finally:
         new_pyproject_content = pyproject.as_string().encode()
@@ -478,10 +470,9 @@ def main(
     print(f'* r3l3453 v{__version__}')
     if path is not None:
         chdir(path)
-    entries = set(listdir('.'))
 
-    check_no_old_conf(ignore_dist, entries)
-    pyproject = check_pyproject_toml(entries)
+    check_no_old_conf(ignore_dist)
+    pyproject = check_pyproject_toml()
 
     version_path = get_version_path(pyproject)
     if version_path is None:
