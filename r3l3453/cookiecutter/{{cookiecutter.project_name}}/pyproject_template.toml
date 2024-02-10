@@ -15,6 +15,9 @@ license = {text = '{{cookiecutter.license}}'}
 [project.urls]
 Homepage = 'https://github.com/5j9/{{cookiecutter.project_name}}'
 
+[tool.flit.sdist]
+exclude = ['tests']
+
 [tool.ruff]
 line-length = 79
 format.quote-style = 'single'
