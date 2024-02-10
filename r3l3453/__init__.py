@@ -317,7 +317,8 @@ def check_build_system(pyproject: TOMLDocument):
     except KeyError:
         info('skipping [build-system] (not found)')
         return
-    build_system |= cc_pyproject['build-system']
+    # https://github.com/sdispater/tomlkit/issues/331
+    build_system.update(cc_pyproject['build-system'])
 
 
 def check_ruff(tool: TOMLDocument):
