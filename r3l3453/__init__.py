@@ -99,6 +99,19 @@ def check_no_old_conf(ignore_dist: bool) -> None:
     if 'setup.cfg' in entries:
         check_setup_cfg()
 
+    if 'MANIFEST.in' in entries:
+        raise SystemExit(
+            'Use [tool.flit.sdist] instead of `MANIFEST.in` file.'
+            'For example:\n'
+            '```\n'
+            '[tool.flit.sdist]\n'
+            'include = ["doc/"]\n'
+            'exclude = ["doc/*.html"]\n'
+            '```\n'
+            'For more infor refer to:\n'
+            'https://flit.pypa.io/en/stable/pyproject_toml.html?highlight=exclude#sdist-section'
+        )
+
     if 'pytest.ini' in entries:
         warning(
             'Removed pytest.ini; settings will be added to pyproject.toml.'
