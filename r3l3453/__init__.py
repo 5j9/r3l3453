@@ -243,7 +243,7 @@ def upload_to_pypi(timeout):
             rmtree(d, ignore_errors=True)
 
 
-def check_update_changelog(
+def _unreleased_to_version(
     changelog: bytes, release_version: Version, ignore_changelog_version: bool
 ) -> bytes | bool:
     unreleased = match(rb'[Uu]nreleased\n-+\n', changelog)
@@ -281,26 +281,41 @@ def check_update_changelog(
     )
 
 
-def update_changelog(release_version: Version, ignore_changelog_version: bool):
+def changelog_unreleased_to_version(
+    release_version: Version, ignore_changelog_version: bool
+) -> bool:
     """Change the title of initial "Unreleased" section to the new version.
 
-    Note: "Unreleased" and "CHANGELOG" are the recommendations of
+    Return False if changelog does not exist, True otherwise.
+
+    "Unreleased" and "CHANGELOG" are the recommendations of
         https://keepachangelog.com/ .
     """
     try:
         with open('CHANGELOG.rst', 'rb+') as f:
             changelog = f.read()
-            new_changelog = check_update_changelog(
+            new_changelog = _unreleased_to_version(
                 changelog, release_version, ignore_changelog_version
             )
             if new_changelog is True:
-                return
+                return True
             f.seek(0)
             f.write(new_changelog)
             f.truncate()
     except FileNotFoundError:
         if SIMULATE is True:
             print('* CHANGELOG.rst not found')
+        return False
+    return True
+
+
+def changelog_add_unreleased():
+    if SIMULATE is True:
+        print('* adding Unreleased section to CHANGELOG.rst')
+    with open('CHANGELOG.rst', 'rb+') as f:
+        changelog = f.read()
+        f.seek(0)
+        f.write(b'..\n    Unreleased\n    ----------\n    * \n\n' + changelog)
 
 
 with open(
@@ -483,7 +498,9 @@ def main(
 
     with read_version_file(version_path) as version_file:
         release_version = update_version(version_file, rtype)
-        update_changelog(release_version, ignore_changelog_version)
+        changelog_exists = changelog_unreleased_to_version(
+            release_version, ignore_changelog_version
+        )
         commit_and_tag(release_version)
 
         if upload is True:
@@ -495,6 +512,8 @@ def main(
 
         # prepare next dev0
         new_dev_version = update_version(version_file, ReleaseType.DEV)
+        if changelog_exists:
+            changelog_add_unreleased()
         commit(f'chore(__version__): bump to {new_dev_version}')
 
     if push is True:
