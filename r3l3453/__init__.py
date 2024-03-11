@@ -312,6 +312,7 @@ def changelog_unreleased_to_version(
 def changelog_add_unreleased():
     if SIMULATE is True:
         print('* adding Unreleased section to CHANGELOG.rst')
+        return
     with open('CHANGELOG.rst', 'rb+') as f:
         changelog = f.read()
         f.seek(0)
