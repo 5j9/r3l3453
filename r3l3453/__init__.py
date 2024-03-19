@@ -531,6 +531,8 @@ def main(
             warning(
                 'CalledProcessError on git push. Will retry until success.'
             )
+            continue
+        break
 
 
 @app.command
