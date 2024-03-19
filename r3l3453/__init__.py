@@ -517,11 +517,20 @@ def main(
             changelog_add_unreleased()
         commit(f'chore(__version__): bump to {new_dev_version}')
 
-    if push is True:
-        if SIMULATE is True:
-            print('* git push')
-        else:
+    if push is False:
+        return
+
+    if SIMULATE is True:
+        print('* git push')
+        return
+
+    while True:
+        try:
             check_call(('git', 'push', '--follow-tags'))
+        except CalledProcessError:
+            warning(
+                'CalledProcessError on git push. Will retry until success.'
+            )
 
 
 @app.command
