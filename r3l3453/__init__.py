@@ -1,4 +1,4 @@
-__version__ = '0.34.1.dev0'
+__version__ = '0.34.1'
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
 from logging import debug, info, warning
