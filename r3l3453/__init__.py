@@ -10,6 +10,7 @@ from subprocess import (
     TimeoutExpired,
     check_call,
     check_output,
+    run,
 )
 from typing import Annotated
 
@@ -354,7 +355,7 @@ def check_ruff(tool: TOMLDocument):
 
     # ruff may add a unified command for linting and formatting.
     # Waiting for https://github.com/astral-sh/ruff/issues/8232 .
-    if check_output(['ruff', 'check', '--fix', '--select', 'I', '.']):
+    if run(['ruff', 'check', '--fix']).returncode != 0:
         warning('ruff check --fix returned non-zero')
 
 
