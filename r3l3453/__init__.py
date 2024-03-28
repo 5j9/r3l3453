@@ -347,7 +347,7 @@ def check_ruff(tool: TOMLDocument):
 
     format_output = check_output(['ruff', 'format', '.'])
     if b' reformatted' in format_output:
-        raise warning('ruff reformatted files')
+        warning('ruff reformatted files')
     elif b' left unchanged' not in format_output:
         warning(
             f'Unexpected ruff format output: `{format_output.rstrip().decode()}`'
@@ -450,7 +450,7 @@ def check_git_status(ignore_git_status: bool):
     branch = (
         check_output(('git', 'branch', '--show-current')).rstrip().decode()
     )
-    if branch != 'master':
+    if branch not in ('master', 'main'):
         if ignore_git_status:
             print(f'* ignoring git branch ({branch} != master)')
         else:
