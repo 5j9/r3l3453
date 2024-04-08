@@ -452,10 +452,10 @@ def check_git_status(ignore_git_status: bool):
     )
     if branch not in ('master', 'main'):
         if ignore_git_status:
-            print(f'* ignoring git branch ({branch} != master)')
+            print(f'* ignoring git branch ({branch} not being main or master.')
         else:
             raise SystemExit(
-                f'git is on {branch} branch. '
+                f'git is on {branch} branch (not main or master). '
                 'Use --ignore-git-status to ignore this error.'
             )
 
