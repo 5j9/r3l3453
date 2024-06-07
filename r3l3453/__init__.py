@@ -226,7 +226,7 @@ def commit_and_tag(release_version: Version):
     check_call(git_tag)
 
 
-def upload_to_pypi(timeout):
+def upload_to_pypi(timeout: int):
     publish = ('python', '-m', 'flit', 'publish')
     if SIMULATE is True:
         print(f"* {' '.join(publish)}")
@@ -236,7 +236,8 @@ def upload_to_pypi(timeout):
             try:
                 check_call(publish, timeout=timeout)
             except TimeoutExpired:
-                print('\n* TimeoutExpired: will retry until success')
+                timeout += 30
+                print('\n* TimeoutExpired: +=30s; retry until success!')
                 continue
             break
     finally:
