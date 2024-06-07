@@ -509,7 +509,7 @@ def main(
         if upload is True:
             try:
                 upload_to_pypi(timeout)
-            except Exception as e:
+            except BaseException as e:
                 reset_and_delete_tag(release_version)
                 raise e
 
