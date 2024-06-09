@@ -500,7 +500,7 @@ def main(
     ignore_changelog_version: bool = False,
     ignore_git_status: bool = False,
     ignore_dist: bool = False,
-    timeout: int = 60,
+    timeout: int = 90,
 ):
     global SIMULATE
     SIMULATE = simulate
