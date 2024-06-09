@@ -235,9 +235,14 @@ def upload_to_pypi(timeout: int):
         while True:
             try:
                 check_call(publish, timeout=timeout)
+                # CalledProcessError could mean that the file is already
+                # uploaded on pypi.
             except TimeoutExpired:
                 timeout += 30
-                print('\n* TimeoutExpired: +=30s; retry until success!')
+                print(
+                    f'\n* TimeoutExpired: next timeout: {timeout};'
+                    f' retrying until success.'
+                )
                 continue
             break
     finally:
@@ -481,7 +486,7 @@ def main(
     ignore_changelog_version: bool = False,
     ignore_git_status: bool = False,
     ignore_dist: bool = False,
-    timeout: int = 30,
+    timeout: int = 60,
 ):
     global SIMULATE
     SIMULATE = simulate
@@ -511,6 +516,9 @@ def main(
                 upload_to_pypi(timeout)
             except BaseException as e:
                 reset_and_delete_tag(release_version)
+                if isinstance(e, KeyboardInterrupt):
+                    print('KeyboardInterrupt')
+                    return
                 raise e
 
         # prepare next dev0
