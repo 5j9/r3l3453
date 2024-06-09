@@ -1,6 +1,7 @@
 __version__ = '0.36.1.dev0'
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
+from glob import glob
 from logging import debug, info, warning
 from os import chdir, listdir, remove
 from re import IGNORECASE, match, search
@@ -227,16 +228,29 @@ def commit_and_tag(release_version: Version):
 
 
 def upload_to_pypi(timeout: int):
-    publish = ('python', '-m', 'flit', 'publish')
+    build = ('python', '-m', 'flit', 'build')
     if SIMULATE is True:
-        print(f"* {' '.join(publish)}")
+        print(build)
+    else:
+        check_call(build)
+    # using `twine` instead of `flit publish` because it has --skip-existing
+    # option. See:
+    # https://github.com/pypa/flit/issues/678#issuecomment-2156286057
+    publish = (
+        'python',
+        '-m',
+        'twine',
+        'upload',
+        '--skip-existing',
+        *glob('dist/*'),
+    )
+    if SIMULATE is True:
+        print(publish)
         return
     try:
         while True:
             try:
                 check_call(publish, timeout=timeout)
-                # CalledProcessError could mean that the file is already
-                # uploaded on pypi.
             except TimeoutExpired:
                 timeout += 30
                 print(
