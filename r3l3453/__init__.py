@@ -1,4 +1,4 @@
-__version__ = '0.38.1.dev0'
+__version__ = '0.39.0'
 from contextlib import AbstractContextManager, contextmanager
 from enum import Enum
 from glob import glob
