@@ -337,7 +337,7 @@ def changelog_add_unreleased():
     with open('CHANGELOG.rst', 'rb+') as f:
         changelog = f.read()
         f.seek(0)
-        f.write(b'..\n    Unreleased\n    ----------\n    * \n\n' + changelog)
+        f.write(b'Unreleased\n----------\n* \n\n' + changelog)
 
 
 with open(
