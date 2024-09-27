@@ -1,10 +1,11 @@
 __version__ = '0.39.1.dev0'
-from contextlib import AbstractContextManager, contextmanager
+from collections.abc import Generator
+from contextlib import contextmanager
 from enum import Enum
 from glob import glob
 from logging import debug, info, warning
 from os import chdir, listdir, remove
-from re import IGNORECASE, match, search
+from re import IGNORECASE, Match, match, search
 from shutil import rmtree
 from subprocess import (
     CalledProcessError,
@@ -13,11 +14,12 @@ from subprocess import (
     check_output,
     run,
 )
-from typing import Annotated
+from typing import Annotated, Any
 
 from cyclopts import App, Parameter
 from parver import Version
 from tomlkit import TOMLDocument, parse
+from tomlkit.container import Container
 
 
 class ReleaseType(Enum):
@@ -43,7 +45,7 @@ class VersionFile:
             from io import StringIO
 
             self._file = StringIO(text)
-        match = search(r'\b__version__\s*=\s*([\'"])(.*?)\1', text)
+        match: Match = search(r'\b__version__\s*=\s*([\'"])(.*?)\1', text)  # type: ignore
         self._offset, end = match.span(2)
         self._trail = text[end:]
         self._version = Version.parse(match[2])
@@ -135,7 +137,7 @@ def check_no_old_conf(ignore_dist: bool) -> None:
 @contextmanager
 def read_version_file(
     version_path: str,
-) -> AbstractContextManager[VersionFile]:
+) -> Generator[VersionFile, Any, Any]:
     vf = VersionFile(version_path)
     try:
         yield vf
@@ -321,7 +323,7 @@ def changelog_unreleased_to_version(
             if new_changelog is True:
                 return True
             f.seek(0)
-            f.write(new_changelog)
+            f.write(new_changelog)  # type: ignore
             f.truncate()
     except FileNotFoundError:
         if SIMULATE is True:
@@ -345,7 +347,7 @@ with open(
     'rb',
 ) as f:
     cc_pyproject_content = f.read()
-cc_pyproject = parse(cc_pyproject_content)
+cc_pyproject: TOMLDocument = parse(cc_pyproject_content)
 
 
 def check_build_system(pyproject: TOMLDocument) -> None:
@@ -355,15 +357,23 @@ def check_build_system(pyproject: TOMLDocument) -> None:
         info('skipping [build-system] (not found)')
         return
     # https://github.com/sdispater/tomlkit/issues/331
-    build_system.update(cc_pyproject['build-system'])
+    build_system.update(cc_pyproject['build-system'])  # type: ignore
 
 
-def check_ruff(tool: TOMLDocument):
+def check_pyright(tool: Container) -> None:
+    pyright = tool.get('pyright')
+    if pyright is None:
+        tool['pyright'] = cc_pyproject['tool']['pyright']  # type: ignore
+        return
+    pyright.setdefault('reportUnnecessaryTypeIgnoreComment', True)
+
+
+def check_ruff(tool: Container):
     if 'isort' in tool:
         del tool['isort']
         warning('[isort] was removed from pyproject; use ruff instead.')
 
-    tool['ruff'] = cc_pyproject['tool']['ruff']
+    tool['ruff'] = cc_pyproject['tool']['ruff']  # type: ignore
 
     format_output = check_output(['ruff', 'format', '.'])
     if b' reformatted' in format_output:
@@ -379,12 +389,13 @@ def check_ruff(tool: TOMLDocument):
         warning('ruff check --fix returned non-zero')
 
 
-def check_pytest(tool: TOMLDocument):
-    tool['pytest'] = cc_pyproject['tool']['pytest']
+def check_pytest(tool: Container):
+    tool['pytest'] = cc_pyproject['tool']['pytest']  # type: ignore
 
 
 def check_tool(pyproject: TOMLDocument) -> None:
-    tool = pyproject['tool']
+    tool: Container = pyproject['tool']  # type: ignore
+    check_pyright(tool)
     check_ruff(tool)
     check_pytest(tool)
     if tool.get('setuptools') is not None:
@@ -449,9 +460,9 @@ def get_version_path(pyproject: TOMLDocument) -> str | None:
     try:
         # Package may have different names for installation and import, see:
         # https://flit.pypa.io/en/stable/pyproject_toml.html#module-section
-        name = pyproject['tool']['flit']['module']['name']
+        name = pyproject['tool']['flit']['module']['name']  # type: ignore
     except KeyError:
-        name = pyproject['project'].get('name')
+        name = pyproject['project'].get('name')  # type: ignore
     if name is None:
         return None
     return f'{name}/__init__.py'

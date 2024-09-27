@@ -48,3 +48,7 @@ lint.ignore = [
 
 [tool.pytest.ini_options]
 addopts = '--quiet --tb=short'
+
+[tool.pyright]
+# https://github.com/microsoft/pyright/blob/main/docs/configuration.md
+reportUnnecessaryTypeIgnoreComment = true
