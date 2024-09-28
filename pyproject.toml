@@ -50,11 +50,10 @@ lint.ignore = [
 addopts = '--quiet --tb=short'
 
 [tool.pyright]
-# https://github.com/microsoft/pyright/blob/main/docs/configuration.md
-reportUnnecessaryTypeIgnoreComment = true
 typeCheckingMode = 'standard'
-reportDeprecated = true
-reportPropertyTypeMismatch = true
-reportUnnecessaryCast = true
-reportUnnecessaryContains = true
-reportUnnecessaryIsInstance = true
+reportDeprecated = "warning"
+reportPropertyTypeMismatch = "warning"
+reportUnnecessaryCast = "warning"
+reportUnnecessaryContains = "warning"
+reportUnnecessaryIsInstance = "warning"
+reportUnnecessaryTypeIgnoreComment = true

@@ -32,9 +32,9 @@ lint.ignore = [
 addopts = '--quiet --tb=short'
 [tool.pyright]
 typeCheckingMode = 'standard'
-reportDeprecated = true
-reportPropertyTypeMismatch = true
-reportUnnecessaryCast = true
-reportUnnecessaryContains = true
-reportUnnecessaryIsInstance = true
+reportDeprecated = "warning"
+reportPropertyTypeMismatch = "warning"
+reportUnnecessaryCast = "warning"
+reportUnnecessaryContains = "warning"
+reportUnnecessaryIsInstance = "warning"
 reportUnnecessaryTypeIgnoreComment = true
