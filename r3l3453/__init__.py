@@ -175,7 +175,7 @@ def get_release_type(base_version: Version) -> ReleaseType:
 
 
 def get_release_version(
-    current_version: Version, release_type: ReleaseType = None
+    current_version: Version, release_type: ReleaseType | None = None
 ) -> Version:
     """Return the next version according to git log."""
     if release_type is ReleaseType.DEV:
@@ -199,7 +199,7 @@ def get_release_version(
 
 def update_version(
     version_file: VersionFile,
-    release_type: ReleaseType = None,
+    release_type: ReleaseType | None = None,
 ) -> Version:
     """Update all versions specified in config + CHANGELOG.rst."""
     current_ver = version_file.version
@@ -365,7 +365,7 @@ def check_pyright(tool: Container) -> None:
     if pyright is None:
         tool['pyright'] = cc_pyproject['tool']['pyright']  # type: ignore
         return
-    pyright.setdefault('reportUnnecessaryTypeIgnoreComment', True)
+    pyright |= cc_pyproject['tool']['pyright'] | pyright  # type: ignore
 
 
 def check_ruff(tool: Container):
@@ -503,11 +503,11 @@ app = App(version=__version__)
 @app.default
 def main(
     *,
-    rtype: ReleaseType = None,
+    rtype: ReleaseType | None = None,
     upload: bool = True,
     push: bool = True,
     simulate: Annotated[bool, Parameter(('--simulate', '-s'))] = False,
-    path: str = None,
+    path: str | None = None,
     ignore_changelog_version: bool = False,
     ignore_git_status: bool = False,
     ignore_dist: bool = False,
