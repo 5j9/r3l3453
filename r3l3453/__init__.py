@@ -362,10 +362,12 @@ def check_build_system(pyproject: TOMLDocument) -> None:
 
 def check_pyright(tool: Container) -> None:
     pyright = tool.get('pyright')
+    cc_pyright: Any = cc_pyproject['tool']['pyright']  # type: ignore
     if pyright is None:
-        tool['pyright'] = cc_pyproject['tool']['pyright']  # type: ignore
+        tool['pyright'] = cc_pyright
         return
-    pyright |= cc_pyproject['tool']['pyright'] | pyright  # type: ignore
+    if pyright.keys() < cc_pyright.keys():
+        pyright |= cc_pyright | pyright
 
 
 def check_ruff(tool: Container):
@@ -390,7 +392,9 @@ def check_ruff(tool: Container):
 
 
 def check_pytest(tool: Container):
-    tool['pytest'] = cc_pyproject['tool']['pytest']  # type: ignore
+    cc_pytest: Any = cc_pyproject['tool']['pytest']  # type: ignore
+    if tool.get('pytest') != cc_pytest:
+        tool['pytest'] = cc_pytest
 
 
 def check_tool(pyproject: TOMLDocument) -> None:
