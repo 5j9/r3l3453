@@ -1,6 +1,7 @@
 __version__ = '0.39.1.dev0'
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from enum import Enum
 from glob import glob
 from logging import debug, info, warning
@@ -289,17 +290,17 @@ def _unreleased_to_version(
             'Use --ignore-changelog-version ignore this error.'
         )
 
+    title = f'v{release_version} ({datetime.now(UTC):%Y-%m-%d})'
+
     if SIMULATE is True:
         print(
-            '* replace the "Unreleased" section of "CHANGELOG.rst" with '
-            f'v{release_version}'
+            f'* replace the "Unreleased" section of "CHANGELOG.rst" with "{title}"'
         )
         return True
 
-    ver_bytes = f'v{release_version}'.encode()
     return b'%b\n%b\n%b' % (
-        ver_bytes,
-        b'-' * len(ver_bytes),
+        title.encode(),
+        b'-' * len(title),
         changelog[unreleased.end() :],
     )
 
