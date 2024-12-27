@@ -13,7 +13,7 @@ classifiers = [
 ]
 # required for nested f-strings
 requires-python = '>=3.12'
-dependencies = ['parver', 'cyclopts', 'ruff', 'cookiecutter', 'flit']
+dependencies = ['parver', 'cyclopts', 'ruff', 'cookiecutter', 'flit', 'tomlkit']
 dynamic = ['version']
 
 [project.license]
