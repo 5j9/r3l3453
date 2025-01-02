@@ -31,7 +31,7 @@ lint.ignore = [
 [tool.pytest.ini_options]
 addopts = '--quiet --tb=short'
 [tool.pyright]
-typeCheckingMode = 'standard
+typeCheckingMode = 'standard'
 reportConstantRedefinition = 'error'
 reportDeprecated = 'warning'
 reportPropertyTypeMismatch = 'error'
