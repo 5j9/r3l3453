@@ -20,6 +20,7 @@ line-length = 79
 format.quote-style = 'single'
 lint.isort.combine-as-imports = true
 lint.extend-select = [
+    'W605', # invalid-escape-sequence
     'FA',  # flake8-future-annotations
     'I',  # isort
     'UP',  # pyupgrade
@@ -32,6 +33,7 @@ lint.ignore = [
 addopts = '--quiet --tb=short'
 [tool.pyright]
 typeCheckingMode = 'standard'
+reportInvalidStringEscapeSequence = false
 reportConstantRedefinition = 'error'
 reportDeprecated = 'warning'
 reportPropertyTypeMismatch = 'error'
