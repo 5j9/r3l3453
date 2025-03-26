@@ -394,7 +394,7 @@ def check_ruff(tool: Container):
 
 def check_pytest(tool: Container):
     cc_pytest: Any = cc_pyproject['tool']['pytest']['ini_options']  # type: ignore
-    tool['pytest']['ini_options'] |= cc_pytest # type: ignore
+    tool['pytest']['ini_options'] |= cc_pytest  # type: ignore
 
 
 def check_tool(pyproject: TOMLDocument) -> None:
