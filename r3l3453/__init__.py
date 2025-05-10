@@ -30,7 +30,7 @@ class ReleaseType(Enum):
     MAJOR = 'major'
 
 
-SIMULATE = False
+simulation = False
 
 
 class VersionFile:
@@ -41,7 +41,7 @@ class VersionFile:
     def __init__(self, path: str):
         file = self._file = open(path, 'r+', newline='\n')
         text = file.read()
-        if SIMULATE is True:
+        if simulation is True:
             print(f'* reading {path}')
             from io import StringIO
 
@@ -155,7 +155,7 @@ def get_release_type(base_version: Version) -> ReleaseType:
         last_version_tag: str = check_output(
             ('git', 'describe', '--match', 'v[0-9]*', '--abbrev=0')
         )[:-1].decode()
-        if SIMULATE is True:
+        if simulation is True:
             print(f'* {last_version_tag=}')
         log = check_output(
             ('git', 'log', '--format=%B', '-z', f'{last_version_tag}..@')
@@ -188,7 +188,7 @@ def get_release_version(
 
     if release_type is None:
         release_type = get_release_type(base_version)
-        if SIMULATE is True:
+        if simulation is True:
             print(f'* {release_type}')
 
     if release_type is ReleaseType.PATCH:
@@ -207,7 +207,7 @@ def update_version(
     version_file.version = release_version = get_release_version(
         current_ver, release_type
     )
-    if SIMULATE is True:  # noinspection PyUnboundLocalVariable
+    if simulation is True:  # noinspection PyUnboundLocalVariable
         print(f'* change file version from {current_ver} to {release_version}')
     version_file.version = release_version
     return release_version
@@ -215,7 +215,7 @@ def update_version(
 
 def commit(message: str):
     args = ('git', 'commit', '--all', f'--message={message}')
-    if SIMULATE is True:
+    if simulation is True:
         print('* ' + ' '.join(args))
         return
     check_call(args)
@@ -224,7 +224,7 @@ def commit(message: str):
 def commit_and_tag(release_version: Version):
     commit(f'release: v{release_version}')
     git_tag = ('git', 'tag', '-a', f'v{release_version}', '-m', '')
-    if SIMULATE is True:
+    if simulation is True:
         print('* ' + ' '.join(git_tag))
         return
     check_call(git_tag)
@@ -232,7 +232,7 @@ def commit_and_tag(release_version: Version):
 
 def upload_to_pypi(timeout: int):
     build = ('python', '-m', 'flit', 'build')
-    if SIMULATE is True:
+    if simulation is True:
         print(build)
     else:
         check_call(build)
@@ -247,7 +247,7 @@ def upload_to_pypi(timeout: int):
         '--skip-existing',
         *glob('dist/*'),
     )
-    if SIMULATE is True:
+    if simulation is True:
         print(publish)
         return
     try:
@@ -292,7 +292,7 @@ def _unreleased_to_version(
 
     title = f'v{release_version} ({datetime.now(UTC):%Y-%m-%d})'
 
-    if SIMULATE is True:
+    if simulation is True:
         print(
             f'* replace the "Unreleased" section of "CHANGELOG.rst" with "{title}"'
         )
@@ -327,14 +327,14 @@ def changelog_unreleased_to_version(
             f.write(new_changelog)  # type: ignore
             f.truncate()
     except FileNotFoundError:
-        if SIMULATE is True:
+        if simulation is True:
             print('* CHANGELOG.rst not found')
         return False
     return True
 
 
 def changelog_add_unreleased():
-    if SIMULATE is True:
+    if simulation is True:
         print('* adding Unreleased section to CHANGELOG.rst')
         return
     with open('CHANGELOG.rst', 'rb+') as f:
@@ -517,8 +517,8 @@ def main(
     ignore_dist: bool = False,
     timeout: int = 90,
 ):
-    global SIMULATE
-    SIMULATE = simulate
+    global simulation
+    simulation = simulate
     print(f'* r3l3453 v{__version__}')
     if path is not None:
         chdir(path)
@@ -559,7 +559,7 @@ def main(
     if push is False:
         return
 
-    if SIMULATE is True:
+    if simulation is True:
         print('* git push')
         return
 
