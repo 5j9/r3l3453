@@ -24,9 +24,11 @@ lint.extend-select = [
     'FA',  # flake8-future-annotations
     'I',  # isort
     'UP',  # pyupgrade
+    'RUF', # Ruff-specific rules (RUF)
 ]
 lint.ignore = [
     'E721',  # Do not compare types, use `isinstance()`
+    'RUF001',  # ambiguous-unicode-character-string	
 ]
 
 [tool.pytest.ini_options]
