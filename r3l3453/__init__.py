@@ -36,7 +36,7 @@ simulation = False
 class VersionFile:
     """Wraps around a version variable in a file. Caches reads."""
 
-    __slots__ = '_file', '_offset', '_version', '_trail'
+    __slots__ = '_file', '_offset', '_trail', '_version'
 
     def __init__(self, path: str):
         file = self._file = open(path, 'r+', newline='\n')
