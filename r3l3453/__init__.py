@@ -231,7 +231,7 @@ def commit_and_tag(release_version: Version):
 
 
 def upload_to_pypi(timeout: int):
-    build = ('python', '-m', 'flit', 'build')
+    build = ('uv', 'build')
     if simulation is True:
         print(build)
     else:
