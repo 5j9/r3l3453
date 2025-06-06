@@ -380,16 +380,14 @@ def check_ruff(tool: Container):
 
     format_output = check_output(['ruff', 'format', '.'])
     if b' reformatted' in format_output:
-        warning('ruff reformatted files')
+        raise SystemExit('ruff reformatted files')
     elif b' left unchanged' not in format_output:
-        warning(
-            f'Unexpected ruff format output: `{format_output.rstrip().decode()}`'
-        )
+        raise SystemExit('Unexpected ruff format output.')
 
     # ruff may add a unified command for linting and formatting.
     # Waiting for https://github.com/astral-sh/ruff/issues/8232 .
     if run(['ruff', 'check', '--fix']).returncode != 0:
-        warning('ruff check --fix returned non-zero')
+        raise SystemExit('ruff check --fix returned non-zero')
 
 
 def check_pytest(pyproject: TOMLDocument, tool: Container):
