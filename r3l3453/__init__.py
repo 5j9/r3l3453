@@ -513,7 +513,9 @@ def main(
     simulate: Annotated[bool, Parameter(('--simulate', '-s'))] = False,
     path: str | None = None,
     ignore_changelog_version: bool = False,
-    ignore_git_status: bool = False,
+    ignore_git_status: Annotated[
+        bool, Parameter(('--ignore-git-status', '-i'))
+    ] = False,
     ignore_dist: bool = False,
     timeout: int = 90,
 ):
