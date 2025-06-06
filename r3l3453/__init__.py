@@ -392,16 +392,31 @@ def check_ruff(tool: Container):
         warning('ruff check --fix returned non-zero')
 
 
-def check_pytest(tool: Container):
-    cc_pytest: Any = cc_pyproject['tool']['pytest']['ini_options']  # type: ignore
-    tool['pytest']['ini_options'] |= cc_pytest  # type: ignore
+def check_pytest(pyproject: TOMLDocument, tool: Container):
+    cc_pio: Any = cc_pyproject['tool']['pytest']['ini_options']  # type: ignore
+    pio: Container = tool['pytest']['ini_options']  # type: ignore
+    pio['addopts'] = cc_pio['addopts']
+    dep_groups = pyproject.get('dependency-groups')
+    if dep_groups is None:
+        return
+    dev: list | None = dep_groups.get('dev')
+    if dev is None:
+        return
+    for dep in dev:
+        if dep.startswith('pytest-asyncio'):
+            break
+    else:
+        return
+    pio['asyncio_mode'] = 'auto'
+    pio['asyncio_default_test_loop_scope'] = 'session'
+    pio['asyncio_default_fixture_loop_scope'] = 'session'
 
 
 def check_tool(pyproject: TOMLDocument) -> None:
     tool: Container = pyproject['tool']  # type: ignore
     check_pyright(tool)
     check_ruff(tool)
-    check_pytest(tool)
+    check_pytest(pyproject, tool)
     if tool.get('setuptools') is not None:
         warning('Removing setuptools from pyproject; use flit instead.')
         del tool['setuptools']
