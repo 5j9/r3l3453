@@ -1,4 +1,4 @@
-__version__ = '0.48.0'
+__version__ = '0.48.1.dev0'
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
