@@ -1,4 +1,4 @@
-__version__ = '0.48.1.dev0'
+__version__ = '0.49.0'
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -15,6 +15,7 @@ from subprocess import (
     run,
 )
 from sys import stderr
+from time import sleep
 from typing import Annotated, Any
 
 from cyclopts import App, Parameter
@@ -272,12 +273,14 @@ def upload_to_pypi(timeout: int):
             except TimeoutExpired:
                 timeout += 30
                 info(
-                    f'\n* TimeoutExpired: next timeout: {timeout};'
+                    # use \n to avoid printing at the end of previous line
+                    f'\nTimeoutExpired: next timeout: {timeout};'
                     f' retrying until success.'
                 )
                 continue
             except CalledProcessError:
-                info('* Retrying until success.')
+                info('Retrying CalledProcessError after 2s until success.')
+                sleep(2.0)
                 continue
             break
     finally:
