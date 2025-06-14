@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from enum import Enum
 from glob import glob
-from logging import debug, info, warning
 from os import chdir, listdir, remove
 from re import IGNORECASE, Match, match, search
 from shutil import rmtree
@@ -15,9 +14,11 @@ from subprocess import (
     check_output,
     run,
 )
+from sys import stderr
 from typing import Annotated, Any
 
 from cyclopts import App, Parameter
+from loguru import logger
 from parver import Version
 from tomlkit import TOMLDocument, parse
 from tomlkit.container import Container
@@ -33,6 +34,20 @@ class ReleaseType(Enum):
 simulation = False
 
 
+logger.remove()
+logger.add(
+    stderr,
+    format='<level>{level: <8}</level><blue>{file.path}:{line}</blue>\t{message}',
+    colorize=True,
+    backtrace=True,  # Optional: to include full backtrace on errors
+    diagnose=True,  # Optional: to include variable values in backtrace
+)
+
+warning = logger.warning
+info = logger.info
+debug = logger.debug
+
+
 class VersionFile:
     """Wraps around a version variable in a file. Caches reads."""
 
@@ -42,7 +57,7 @@ class VersionFile:
         file = self._file = open(path, 'r+', newline='\n')
         text = file.read()
         if simulation is True:
-            print(f'* reading {path}')
+            info(f'reading {path}')
             from io import StringIO
 
             self._file = StringIO(text)
@@ -156,7 +171,7 @@ def get_release_type(base_version: Version) -> ReleaseType:
             ('git', 'describe', '--match', 'v[0-9]*', '--abbrev=0')
         )[:-1].decode()
         if simulation is True:
-            print(f'* {last_version_tag=}')
+            info(f'{last_version_tag=}')
         log = check_output(
             ('git', 'log', '--format=%B', '-z', f'{last_version_tag}..@')
         )
@@ -189,7 +204,7 @@ def get_release_version(
     if release_type is None:
         release_type = get_release_type(base_version)
         if simulation is True:
-            print(f'* {release_type}')
+            info(f'{release_type = }')
 
     if release_type is ReleaseType.PATCH:
         return base_version
@@ -207,8 +222,8 @@ def update_version(
     version_file.version = release_version = get_release_version(
         current_ver, release_type
     )
-    if simulation is True:  # noinspection PyUnboundLocalVariable
-        print(f'* change file version from {current_ver} to {release_version}')
+    if simulation is True:
+        info(f'changed file version from {current_ver} to {release_version}')
     version_file.version = release_version
     return release_version
 
@@ -216,7 +231,7 @@ def update_version(
 def commit(message: str):
     args = ('git', 'commit', '--all', f'--message={message}')
     if simulation is True:
-        print('* ' + ' '.join(args))
+        info(' '.join(args))
         return
     check_call(args)
 
@@ -225,7 +240,7 @@ def commit_and_tag(release_version: Version):
     commit(f'release: v{release_version}')
     git_tag = ('git', 'tag', '-a', f'v{release_version}', '-m', '')
     if simulation is True:
-        print('* ' + ' '.join(git_tag))
+        info(' '.join(git_tag))
         return
     check_call(git_tag)
 
@@ -233,7 +248,7 @@ def commit_and_tag(release_version: Version):
 def upload_to_pypi(timeout: int):
     build = ('uv', 'build')
     if simulation is True:
-        print(build)
+        info(build)
     else:
         check_call(build)
     # using `twine` instead of `flit publish` because it has --skip-existing
@@ -248,7 +263,7 @@ def upload_to_pypi(timeout: int):
         *glob('dist/*'),
     )
     if simulation is True:
-        print(publish)
+        info(publish)
         return
     try:
         while True:
@@ -256,13 +271,13 @@ def upload_to_pypi(timeout: int):
                 check_call(publish, timeout=timeout)
             except TimeoutExpired:
                 timeout += 30
-                print(
+                info(
                     f'\n* TimeoutExpired: next timeout: {timeout};'
                     f' retrying until success.'
                 )
                 continue
             except CalledProcessError:
-                print('* Retrying until success.')
+                info('* Retrying until success.')
                 continue
             break
     finally:
@@ -282,10 +297,10 @@ def _unreleased_to_version(
             )
         changelog_version = Version.parse(v_match[1].decode())
         if changelog_version == release_version:
-            print("* CHANGELOG's version matches release_version")
+            info("CHANGELOG's version matches release_version")
             return True
         if ignore_changelog_version is not False:
-            print('* ignoring non-matching CHANGELOG version')
+            info('ignoring non-matching CHANGELOG version')
             return True
         raise SystemExit(
             f"CHANGELOG's version ({changelog_version}) does not "
@@ -296,8 +311,8 @@ def _unreleased_to_version(
     title = f'v{release_version} ({datetime.now(UTC):%Y-%m-%d})'
 
     if simulation is True:
-        print(
-            f'* replace the "Unreleased" section of "CHANGELOG.rst" with "{title}"'
+        info(
+            f'replace the "Unreleased" section of "CHANGELOG.rst" with "{title}"'
         )
         return True
 
@@ -331,14 +346,14 @@ def changelog_unreleased_to_version(
             f.truncate()
     except FileNotFoundError:
         if simulation is True:
-            print('* CHANGELOG.rst not found')
+            info('CHANGELOG.rst not found')
         return False
     return True
 
 
 def changelog_add_unreleased():
     if simulation is True:
-        print('* adding Unreleased section to CHANGELOG.rst')
+        info('adding Unreleased section to CHANGELOG.rst')
         return
     with open('CHANGELOG.rst', 'rb+') as f:
         changelog = f.read()
@@ -492,7 +507,7 @@ def check_git_status(ignore_git_status: bool):
     status = check_output(('git', 'status', '--porcelain'))
     if status:
         if ignore_git_status:
-            print(f'* ignoring git {status=}')
+            info(f'ignoring git status:\n{status.decode()}')
         else:
             raise SystemExit(
                 'git status is not clean. '
@@ -503,7 +518,7 @@ def check_git_status(ignore_git_status: bool):
     )
     if branch not in ('master', 'main'):
         if ignore_git_status:
-            print(f'* ignoring git branch ({branch} not being main or master.')
+            info(f'ignoring git branch ({branch} not being main or master.')
         else:
             raise SystemExit(
                 f'git is on {branch} branch (not main or master). '
@@ -512,7 +527,7 @@ def check_git_status(ignore_git_status: bool):
 
 
 def reset_and_delete_tag(release_version):
-    print('* reset_and_delete_tag')
+    info('reset_and_delete_tag')
     check_call(['git', 'reset', '@^'])
     check_call(['git', 'tag', '--delete', f'v{release_version}'])
 
@@ -537,7 +552,7 @@ def main(
 ):
     global simulation
     simulation = simulate
-    print(f'* r3l3453 v{__version__}')
+    info(f'r3l3453 v{__version__}')
     if path is not None:
         chdir(path)
 
@@ -564,7 +579,7 @@ def main(
             except BaseException as e:
                 reset_and_delete_tag(release_version)
                 if isinstance(e, KeyboardInterrupt):
-                    print('KeyboardInterrupt')
+                    info('KeyboardInterrupt')
                     return
                 raise e
 
@@ -578,7 +593,7 @@ def main(
         return
 
     if simulation is True:
-        print('* git push')
+        info('git push')
         return
 
     while True:

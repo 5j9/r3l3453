@@ -343,6 +343,19 @@ wheels = [
 ]
 
 [[package]]
+name = "loguru"
+version = "0.7.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "win32-setctime", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3a/05/a1dae3dffd1116099471c643b8924f5aa6524411dc6c63fdae648c4f1aca/loguru-0.7.3.tar.gz", hash = "sha256:19480589e77d47b8d85b2c827ad95d49bf31b0dcde16593892eb51dd18706eb6", size = 63559, upload-time = "2024-12-06T11:20:56.608Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/29/0348de65b8cc732daa3e33e67806420b2ae89bdce2b04af740289c5c6c8c/loguru-0.7.3-py3-none-any.whl", hash = "sha256:31a33c10c8e1e10422bfd431aeb5d351c7cf7fa671e3c4df004162264b28220c", size = 61595, upload-time = "2024-12-06T11:20:54.538Z" },
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -556,6 +569,7 @@ dependencies = [
     { name = "cookiecutter" },
     { name = "cyclopts" },
     { name = "flit" },
+    { name = "loguru" },
     { name = "parver" },
     { name = "ruff" },
     { name = "tomlkit" },
@@ -568,6 +582,7 @@ requires-dist = [
     { name = "cookiecutter" },
     { name = "cyclopts" },
     { name = "flit" },
+    { name = "loguru", specifier = ">=0.7.3" },
     { name = "parver" },
     { name = "ruff" },
     { name = "tomlkit" },
@@ -786,4 +801,13 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/32/e8/dc3ba65157833e84efff44b9c31f3a73588e1ded579a3e6dc227e5daecfa/uv-0.7.11-py3-none-win32.whl", hash = "sha256:38adcfd3c3d03c97e98498073df004ac190d21538ecf40752fb3f1b439c6fe5e", size = 17319759, upload-time = "2025-06-04T20:06:58.172Z" },
     { url = "https://files.pythonhosted.org/packages/64/28/891d40646c9244e3e4426f4e1747e2882d8e415cfc76c98887faa19b94e3/uv-0.7.11-py3-none-win_amd64.whl", hash = "sha256:949ae795894e92bc3739e5e52b187457644144791917bafed3d58913d7ac07dc", size = 18839020, upload-time = "2025-06-04T20:07:02.913Z" },
     { url = "https://files.pythonhosted.org/packages/b3/05/3efe83733e8bed16767cc14accbd88439dad05a169c0d19bde2a106bd5e3/uv-0.7.11-py3-none-win_arm64.whl", hash = "sha256:7cce0fd2a9128b5dce6031ebbd15a9f392ed08f6ef53ccce15d47543a5fac5fe", size = 17559089, upload-time = "2025-06-04T20:07:06.455Z" },
+]
+
+[[package]]
+name = "win32-setctime"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b3/8f/705086c9d734d3b663af0e9bb3d4de6578d08f46b1b101c2442fd9aecaa2/win32_setctime-1.2.0.tar.gz", hash = "sha256:ae1fdf948f5640aae05c511ade119313fb6a30d7eabe25fef9764dca5873c4c0", size = 4867, upload-time = "2024-12-07T15:28:28.314Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e1/07/c6fe3ad3e685340704d314d765b7912993bcb8dc198f0e7a89382d37974b/win32_setctime-1.2.0-py3-none-any.whl", hash = "sha256:95d644c4e708aba81dc3704a116d8cbc974d70b3bdb8be1d150e36be6e9d1390", size = 4083, upload-time = "2024-12-07T15:28:26.465Z" },
 ]
