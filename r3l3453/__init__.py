@@ -261,6 +261,9 @@ def upload_to_pypi(timeout: int):
                     f' retrying until success.'
                 )
                 continue
+            except CalledProcessError:
+                print('* Retrying until success.')
+                continue
             break
     finally:
         for d in ('dist', 'build'):
