@@ -55,7 +55,7 @@ class VersionFile:
     __slots__ = '_file', '_offset', '_trail', '_version'
 
     def __init__(self, path: str):
-        file = self._file = open(path, 'r+', newline='\n')
+        file = self._file = open(path, 'r+', newline='\n', encoding='utf8')
         text = file.read()
         if simulation is True:
             info(f'reading {path}')
