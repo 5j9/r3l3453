@@ -1,4 +1,4 @@
-from r3l3453 import console_scripts_entry_point
+from r3l3453 import app
 
 if __name__ == '__main__':
-    console_scripts_entry_point()
+    app()

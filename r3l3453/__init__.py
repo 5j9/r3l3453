@@ -623,7 +623,3 @@ def init():
 
     cookiecutter_dir = Path(__file__).parent / 'cookiecutter'
     cookiecutter(str(cookiecutter_dir))
-
-
-def console_scripts_entry_point():
-    app()
