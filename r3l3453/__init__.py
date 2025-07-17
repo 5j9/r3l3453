@@ -432,7 +432,12 @@ def check_pytest(pyproject: TOMLDocument, tool: Container):
 
 
 def check_tool(pyproject: TOMLDocument) -> None:
-    tool: Container = pyproject['tool']  # type: ignore
+    try:
+        tool: Container = pyproject['tool']  # type: ignore
+    except KeyError:
+        pyproject['tool'] = cc_pyproject['tool']
+        return
+
     check_pyright(tool)
     check_ruff(tool)
     check_pytest(pyproject, tool)
