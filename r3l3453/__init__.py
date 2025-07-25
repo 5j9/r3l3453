@@ -128,7 +128,7 @@ class VersionManager:
             try:
                 return self._uv_bump('stable')
             except CalledProcessError:  # already on stable version
-            return self._uv_bump('patch')
+                return self._uv_bump('patch')
         if release_type is ReleaseType.MINOR:
             return self._uv_bump('minor')
         return self._uv_bump('major')
@@ -214,6 +214,7 @@ def get_release_type(base_version: str) -> ReleaseType:
         )[:-1].decode()
         if simulation is True:
             info(f'{last_version_tag=}')
+        # -z: Separate the commits with NULs instead of newlines.
         log = check_output(
             ('git', 'log', '--format=%B', '-z', f'{last_version_tag}..@')
         )
@@ -221,14 +222,14 @@ def get_release_type(base_version: str) -> ReleaseType:
         warning('No version tags found. Checking all commits...')
         log = check_output(('git', 'log', '--format=%B'))
 
-    if search(rb'(?:\A|\n])(?:BREAKING CHANGE[(:]|.*?!:)', log):
+    if search(rb'(?:\A|\0).*?!:|\nBREAKING CHANGE:', log):
         if base_version.startswith('0.'):
             # Do not bump an early development version to a major release.
             # That type of change should be explicit.
             logger.debug('Ignoring major change in initial development phase.')
             return ReleaseType.MINOR
         return ReleaseType.MAJOR
-    if search(rb'(?:\A|\n)feat[(:]', log, IGNORECASE):
+    if search(rb'(?:\A|\0)feat[(:]', log, IGNORECASE):
         return ReleaseType.MINOR
     return ReleaseType.PATCH
 
