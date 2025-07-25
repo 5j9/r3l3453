@@ -1,6 +1,4 @@
 __version__ = '0.51.1.dev0'
-from collections.abc import Generator
-from contextlib import contextmanager
 from datetime import UTC, datetime
 from enum import Enum
 from os import chdir, getenv, listdir, remove
@@ -20,9 +18,9 @@ from typing import Annotated, Any
 
 from cyclopts import App, Parameter
 from loguru import logger
-from parver import Version
 from tomlkit import TOMLDocument, parse
 from tomlkit.container import Container
+from tomlkit.items import Table
 
 
 class ReleaseType(Enum):
@@ -49,37 +47,79 @@ info = logger.info
 debug = logger.debug
 
 
-class VersionFile:
-    """Wraps around a version variable in a file. Caches reads."""
-
-    __slots__ = '_file', '_offset', '_trail', '_version'
+class VersionManager:
+    __slots__ = '_init_file', '_offset', '_trail', '_version'
 
     def __init__(self, path: str):
-        file = self._file = open(path, 'r+', newline='\n', encoding='utf8')
+        file = self._init_file = open(
+            path, 'r+', newline='\n', encoding='utf8'
+        )
         text = file.read()
         if simulation is True:
             info(f'reading {path}')
             from io import StringIO
 
-            self._file = StringIO(text)
+            self._init_file = StringIO(text)
         match: Match = search(r'\b__version__\s*=\s*([\'"])(.*?)\1', text)  # type: ignore
         self._offset, end = match.span(2)
         self._trail = text[end:]
-        self._version = Version.parse(match[2])
+        self._version: str = match[2]
 
     @property
-    def version(self) -> Version:
+    def version(self) -> str:
         return self._version
 
     @version.setter
-    def version(self, version: Version):
-        (file := self._file).seek(self._offset)
-        file.write(str(version) + self._trail)
-        file.truncate()
+    def version(self, version: str):
+        if simulation:
+            info(f'changing init version from {self._version} to {version}')
+        else:
+            (file := self._init_file).seek(self._offset)
+            file.write(str(version) + self._trail)
+            file.truncate()
         self._version = version
 
     def close(self):
-        self._file.close()
+        self._init_file.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
+
+    def _uv_bump(self, *bumps: str):
+        args = ['uv', 'version']
+
+        for bump in bumps:
+            args += ['--bump', bump]
+
+        if simulation:
+            args.append('--dry-run')
+
+        cp = run(args)
+        new_version = cp.stdout.decode().partition(' => ')[2]
+        self.version = new_version
+        return new_version
+
+    def bump(self, release_type: ReleaseType | None):
+        if release_type is ReleaseType.DEV:
+            if '.dev' in self.version:
+                return self._uv_bump('dev')
+            # stable version
+            return self._uv_bump('patch', 'dev')
+
+        if release_type is None:
+            release_type = get_release_type(self.version)
+            if simulation is True:
+                info(f'{release_type = }')
+
+        if release_type is ReleaseType.PATCH:
+            return self._uv_bump('stable')
+
+        if release_type is ReleaseType.MINOR:
+            return self._uv_bump('stable', 'minor')
+        return self._uv_bump('stable', 'major')
 
 
 def check_setup_cfg():
@@ -151,18 +191,7 @@ def check_no_old_conf(ignore_dist: bool) -> None:
         )
 
 
-@contextmanager
-def read_version_file(
-    version_path: str,
-) -> Generator[VersionFile, Any, Any]:
-    vf = VersionFile(version_path)
-    try:
-        yield vf
-    finally:
-        vf.close()
-
-
-def get_release_type(base_version: Version) -> ReleaseType:
+def get_release_type(base_version: str) -> ReleaseType:
     """Return release type by analyzing git commits.
 
     According to https://www.conventionalcommits.org/en/v1.0.0/ .
@@ -181,7 +210,7 @@ def get_release_type(base_version: Version) -> ReleaseType:
         log = check_output(('git', 'log', '--format=%B'))
 
     if search(rb'(?:\A|[\0\n])(?:BREAKING CHANGE[(:]|.*?!:)', log):
-        if base_version < Version((1,)):
+        if base_version.startswith('0.'):
             # Do not bump an early development version to a major release.
             # That type of change should be explicit (via rtype param).
             return ReleaseType.MINOR
@@ -189,47 +218,6 @@ def get_release_type(base_version: Version) -> ReleaseType:
     if search(rb'(?:\A|\0)feat[(:]', log, IGNORECASE):
         return ReleaseType.MINOR
     return ReleaseType.PATCH
-
-
-def get_release_version(
-    current_version: Version, release_type: ReleaseType | None = None
-) -> Version:
-    """Return the next version according to git log."""
-    if release_type is ReleaseType.DEV:
-        if current_version.is_devrelease:
-            return current_version.bump_dev()
-        return current_version.bump_release(index=2).bump_dev()
-
-    base_version = current_version.base_version()  # removes devN
-
-    if release_type is None:
-        release_type = get_release_type(base_version)
-        if simulation is True:
-            info(f'{release_type = }')
-
-    if release_type is ReleaseType.PATCH:
-        return base_version
-    if release_type is ReleaseType.MINOR:
-        return base_version.bump_release(index=1)
-    return base_version.bump_release(index=0)
-
-
-def update_version(
-    version_file: VersionFile,
-    release_type: ReleaseType | None = None,
-) -> Version:
-    """Update all versions specified in config + CHANGELOG.rst."""
-    # uv supports bumping the version but does not support dynamic versions.
-    # https://docs.astral.sh/uv/guides/package/#updating-your-version
-    # https://github.com/astral-sh/uv/issues/14137
-    current_ver = version_file.version
-    version_file.version = release_version = get_release_version(
-        current_ver, release_type
-    )
-    if simulation is True:
-        info(f'changed file version from {current_ver} to {release_version}')
-    version_file.version = release_version
-    return release_version
 
 
 def commit(message: str):
@@ -240,7 +228,7 @@ def commit(message: str):
     check_call(args)
 
 
-def commit_and_tag(release_version: Version):
+def commit_and_tag(release_version: str):
     commit(f'release: v{release_version}')
     git_tag = ('git', 'tag', '-a', f'v{release_version}', '-m', '')
     if simulation is True:
@@ -314,7 +302,7 @@ def upload_to_pypi(timeout: int):
 
 
 def _unreleased_to_version(
-    changelog: bytes, release_version: Version, ignore_changelog_version: bool
+    changelog: bytes, release_version: str, ignore_changelog_version: bool
 ) -> bytes | bool:
     unreleased = match(rb'[Uu]nreleased\n-+\n', changelog)
     if unreleased is None:
@@ -323,7 +311,7 @@ def _unreleased_to_version(
             raise SystemExit(
                 'CHANGELOG.rst does not start with a version or "Unreleased"'
             )
-        changelog_version = Version.parse(v_match[1].decode())
+        changelog_version = v_match[1].decode()
         if changelog_version == release_version:
             info("CHANGELOG's version matches release_version")
             return True
@@ -352,7 +340,7 @@ def _unreleased_to_version(
 
 
 def changelog_unreleased_to_version(
-    release_version: Version, ignore_changelog_version: bool
+    release_version: str, ignore_changelog_version: bool
 ) -> bool:
     """Change the title of initial "Unreleased" section to the new version.
 
@@ -403,8 +391,7 @@ def check_build_system(pyproject: TOMLDocument) -> None:
     except KeyError:
         info('skipping [build-system] (not found)')
         return
-    # https://github.com/sdispater/tomlkit/issues/331
-    build_system.update(cc_pyproject['build-system'])  # type: ignore
+    build_system |= cc_pyproject['build-system']  # type: ignore
 
 
 def check_pyright(tool: Container) -> None:
@@ -468,6 +455,25 @@ def check_flit(tool: Container):
     )
 
 
+def check_uv(pyproject: TOMLDocument, tool: Container):
+    """Fix/update uv settings.
+
+    Project structure must be flat. (src is not supported yet).
+    Namespace packages are not currently supported.
+
+    See:
+    https://docs.astral.sh/uv/concepts/build-backend/#namespace-packages
+    https://docs.astral.sh/uv/reference/settings/#build-backend_module-name
+    """
+    project_name: str = pyproject['project']['name']  # type: ignore
+    module_name = project_name.replace('.', '_').replace('-', '_')
+    uv = {'build-backend': {'module-name': module_name, 'module-root': ''}}
+    try:
+        tool['uv'] |= uv  # type: ignore
+    except KeyError:
+        tool['uv'] = uv
+
+
 def check_tool(pyproject: TOMLDocument) -> None:
     try:
         tool: Container = pyproject['tool']  # type: ignore
@@ -475,6 +481,7 @@ def check_tool(pyproject: TOMLDocument) -> None:
         pyproject['tool'] = cc_pyproject['tool']
         return
 
+    check_uv(pyproject, tool)
     check_flit(tool)
     check_pyright(tool)
     check_ruff(tool)
@@ -482,6 +489,18 @@ def check_tool(pyproject: TOMLDocument) -> None:
     if tool.get('setuptools') is not None:
         warning('Removing setuptools from pyproject; use uv instead.')
         del tool['setuptools']
+
+
+def check_version(project: TOMLDocument):
+    if 'version' not in project:
+        raise SystemExit('add project.version')
+
+    # uv does not support dynamic version
+    dynamic = project.get('dynamic')
+    if dynamic is None:
+        return
+    if 'version' in dynamic:
+        raise SystemExit('remove version from project.dynamic')
 
 
 def check_project(pyproject: TOMLDocument) -> None:
@@ -492,6 +511,7 @@ def check_project(pyproject: TOMLDocument) -> None:
             'pyproject.toml did not have a [project] section. '
             '`requires-python` field is required.'
         )
+    check_version(project)
     if project.get('requires-python') is None:
         required_python = input(
             'What is the minimum required python version for this project? (e.g. 3.12)\n'
@@ -499,8 +519,8 @@ def check_project(pyproject: TOMLDocument) -> None:
         project['requires-python'] = required_python
     if project.get('urls') is None:
         if (name := project.get('name')) is not None:
-            warning('adding Homepage to project urls')
-            project['urls'] = {'Homepage': f'https://github.com/5j9/{name}'}
+            warning('adding GitHub link to project urls')
+            project['urls'] = {'GitHub': f'https://github.com/5j9/{name}'}
 
 
 # @cache
@@ -514,7 +534,7 @@ def write_pyproject(content: bytes):
         f.write(content)
 
 
-def check_pyproject_toml() -> TOMLDocument:
+def update_pyproject_toml() -> TOMLDocument:
     # https://packaging.python.org/tutorials/packaging-projects/
     try:
         with open('pyproject.toml', 'rb') as f:
@@ -537,16 +557,21 @@ def check_pyproject_toml() -> TOMLDocument:
     return pyproject
 
 
-def get__version__path(pyproject: TOMLDocument) -> str:
+def init_file(pyproject: TOMLDocument) -> str:
     try:
         backend_get = pyproject['tool']['uv']['build-backend'].get  # type: ignore
     except KeyError:
         return 'src/__init__.py'
     # namespace packages are not currently supported
     # https://docs.astral.sh/uv/concepts/build-backend/#namespace-packages
-    # default module-root is src and default module-name is None.
+    # Default module-root is src and the default module name is the package
+    # name with dots and dashes replaced by underscores.
     # https://docs.astral.sh/uv/reference/settings/#build-backend_module-name
-    return f'{backend_get("module-root", "src")}{backend_get("module-name", "")}/__init__.py'
+    module_name = backend_get('module-name')
+    if module_name is None:
+        project_name: str = pyproject['name']  # type: ignore
+        module_name = project_name.replace('.', '_').replace('-', '_')
+    return f'{backend_get("module-root", "src")}/{module_name}/__init__.py'
 
 
 def check_git_status(ignore_git_status: bool):
@@ -584,7 +609,7 @@ app = App(version=__version__)
 @app.default
 def main(
     *,
-    rtype: ReleaseType | None = None,
+    release_type: ReleaseType | None = None,
     upload: bool = True,
     push: bool = True,
     simulate: Annotated[bool, Parameter(('--simulate', '-s'))] = False,
@@ -603,14 +628,12 @@ def main(
         chdir(path)
 
     check_no_old_conf(ignore_dist)
-    pyproject = check_pyproject_toml()
-
-    version_path = get__version__path(pyproject)
+    pyproject = update_pyproject_toml()
 
     check_git_status(ignore_git_status)
 
-    with read_version_file(version_path) as version_file:
-        release_version = update_version(version_file, rtype)
+    with VersionManager(init_file(pyproject)) as version_manager:
+        release_version = version_manager.bump(release_type)
         changelog_exists = changelog_unreleased_to_version(
             release_version, ignore_changelog_version
         )
@@ -627,7 +650,7 @@ def main(
                 raise e
 
         # prepare next dev0
-        new_dev_version = update_version(version_file, ReleaseType.DEV)
+        new_dev_version = version_manager.bump(ReleaseType.DEV)
         if changelog_exists:
             changelog_add_unreleased()
         commit(f'chore(__version__): bump to {new_dev_version}')

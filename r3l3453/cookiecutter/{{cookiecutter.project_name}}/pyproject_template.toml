@@ -4,16 +4,22 @@ build-backend = 'uv_build'
 
 [project]
 name = '{{cookiecutter.project_name}}'
+version = '0.1.dev0'
 authors = [{ name = '5j9', email = '5j9@users.noreply.github.com' }]
 description = '{{cookiecutter.description}}'
 readme = 'README.rst'
 requires-python = '>={{cookiecutter.requires_python}}'
 dependencies = []
-dynamic = ['version']
 license = {text = '{{cookiecutter.license}}'}
 
 [project.urls]
 Homepage = 'https://github.com/5j9/{{cookiecutter.project_name}}'
+
+
+[tool.uv.build-backend]
+module-root = ''
+module-name = {{ cookiecutter.project_name | replace('.', '_') | replace('-', '_') }}
+
 
 [tool.ruff]
 line-length = 79
