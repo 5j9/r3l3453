@@ -479,6 +479,8 @@ def check_uv(pyproject: TOMLDocument, tool: Container):
     https://docs.astral.sh/uv/concepts/build-backend/#namespace-packages
     https://docs.astral.sh/uv/reference/settings/#build-backend_module-name
     """
+    if 'build-system' not in pyproject:
+        return
     project_name: str = pyproject['project']['name']  # type: ignore
     module_name = project_name.replace('.', '_').replace('-', '_')
     uv = {'build-backend': {'module-name': module_name, 'module-root': ''}}
