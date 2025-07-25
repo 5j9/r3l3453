@@ -18,7 +18,7 @@ Homepage = 'https://github.com/5j9/{{cookiecutter.project_name}}'
 
 [tool.uv.build-backend]
 module-root = ''
-module-name = {{ cookiecutter.project_name | replace('.', '_') | replace('-', '_') }}
+module-name = "{{ cookiecutter.project_name | replace('.', '_') | replace('-', '_') }}"
 
 
 [tool.ruff]

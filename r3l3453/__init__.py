@@ -6,6 +6,7 @@ from pathlib import Path
 from re import IGNORECASE, Match, match, search
 from shutil import rmtree
 from subprocess import (
+    PIPE,
     CalledProcessError,
     TimeoutExpired,
     check_call,
@@ -20,7 +21,6 @@ from cyclopts import App, Parameter
 from loguru import logger
 from tomlkit import TOMLDocument, parse
 from tomlkit.container import Container
-from tomlkit.items import Table
 
 
 class ReleaseType(Enum):
@@ -48,9 +48,12 @@ debug = logger.debug
 
 
 class VersionManager:
-    __slots__ = '_init_file', '_offset', '_trail', '_version'
+    __slots__ = '_init_file', '_offset', '_pyproject', '_trail', '_version'
 
-    def __init__(self, path: str):
+    def __init__(self, pyproject: TOMLDocument):
+        # relative path assuming cwd is root
+        self._pyproject = pyproject
+        path = f'{pyproject["tool"]["uv"]["build-backend"]["module-name"]}/__init__.py'  # type: ignore
         file = self._init_file = open(
             path, 'r+', newline='\n', encoding='utf8'
         )
@@ -66,11 +69,11 @@ class VersionManager:
         self._version: str = match[2]
 
     @property
-    def version(self) -> str:
+    def init_version(self) -> str:
         return self._version
 
-    @version.setter
-    def version(self, version: str):
+    @init_version.setter
+    def init_version(self, version: str):
         if simulation:
             info(f'changing init version from {self._version} to {version}')
         else:
@@ -86,40 +89,46 @@ class VersionManager:
         return self
 
     def __exit__(self, *_):
+        if simulation:  # restore pyproject version
+            write_pyproject(self._pyproject.as_string().encode())
         self.close()
 
     def _uv_bump(self, *bumps: str):
-        args = ['uv', 'version']
+        args = ['uv', 'version', '--frozen']
 
         for bump in bumps:
             args += ['--bump', bump]
 
-        if simulation:
-            args.append('--dry-run')
+        # --dry-run fials to report correct version bumps during simulation
+        # if simulation:
+        #     args.append('--dry-run')
 
-        cp = run(args)
-        new_version = cp.stdout.decode().partition(' => ')[2]
-        self.version = new_version
+        logger.info(args)
+        cp = run(args, stdout=PIPE)
+        out = cp.stdout.decode().rstrip()
+        logger.info(out)
+        new_version = out.partition(' => ')[2]
+        self.init_version = new_version
         return new_version
 
     def bump(self, release_type: ReleaseType | None):
         if release_type is ReleaseType.DEV:
-            if '.dev' in self.version:
+            if '.dev' in self.init_version:
                 return self._uv_bump('dev')
             # stable version
             return self._uv_bump('patch', 'dev')
 
         if release_type is None:
-            release_type = get_release_type(self.version)
+            release_type = get_release_type(self.init_version)
             if simulation is True:
                 info(f'{release_type = }')
 
+        # bumping to major/minor/patch will remove pre-release parts
         if release_type is ReleaseType.PATCH:
-            return self._uv_bump('stable')
-
+            return self._uv_bump('patch')
         if release_type is ReleaseType.MINOR:
-            return self._uv_bump('stable', 'minor')
-        return self._uv_bump('stable', 'major')
+            return self._uv_bump('minor')
+        return self._uv_bump('major')
 
 
 def check_setup_cfg():
@@ -209,13 +218,13 @@ def get_release_type(base_version: str) -> ReleaseType:
         warning('No version tags found. Checking all commits...')
         log = check_output(('git', 'log', '--format=%B'))
 
-    if search(rb'(?:\A|[\0\n])(?:BREAKING CHANGE[(:]|.*?!:)', log):
+    if search(rb'(?:\A|\n])(?:BREAKING CHANGE[(:]|.*?!:)', log):
         if base_version.startswith('0.'):
             # Do not bump an early development version to a major release.
-            # That type of change should be explicit (via rtype param).
+            # That type of change should be explicit.
             return ReleaseType.MINOR
         return ReleaseType.MAJOR
-    if search(rb'(?:\A|\0)feat[(:]', log, IGNORECASE):
+    if search(rb'(?:\A|\n)feat[(:]', log, IGNORECASE):
         return ReleaseType.MINOR
     return ReleaseType.PATCH
 
@@ -377,11 +386,11 @@ def changelog_add_unreleased():
         f.write(b'Unreleased\n----------\n* \n\n' + changelog)
 
 
-with open(
-    f'{__file__}/../cookiecutter/{{{{cookiecutter.project_name}}}}/pyproject_template.toml',
-    'rb',
-) as f:
-    cc_pyproject_content = f.read()
+this_dir = Path(__file__).parent
+cc_pyproject_content = (
+    this_dir
+    / 'cookiecutter/{{cookiecutter.project_name}}/pyproject_template.toml'
+).read_bytes()
 cc_pyproject: TOMLDocument = parse(cc_pyproject_content)
 
 
@@ -557,23 +566,6 @@ def update_pyproject_toml() -> TOMLDocument:
     return pyproject
 
 
-def init_file(pyproject: TOMLDocument) -> str:
-    try:
-        backend_get = pyproject['tool']['uv']['build-backend'].get  # type: ignore
-    except KeyError:
-        return 'src/__init__.py'
-    # namespace packages are not currently supported
-    # https://docs.astral.sh/uv/concepts/build-backend/#namespace-packages
-    # Default module-root is src and the default module name is the package
-    # name with dots and dashes replaced by underscores.
-    # https://docs.astral.sh/uv/reference/settings/#build-backend_module-name
-    module_name = backend_get('module-name')
-    if module_name is None:
-        project_name: str = pyproject['name']  # type: ignore
-        module_name = project_name.replace('.', '_').replace('-', '_')
-    return f'{backend_get("module-root", "src")}/{module_name}/__init__.py'
-
-
 def check_git_status(ignore_git_status: bool):
     status = check_output(('git', 'status', '--porcelain'))
     if status:
@@ -632,7 +624,7 @@ def main(
 
     check_git_status(ignore_git_status)
 
-    with VersionManager(init_file(pyproject)) as version_manager:
+    with VersionManager(pyproject) as version_manager:
         release_version = version_manager.bump(release_type)
         changelog_exists = changelog_unreleased_to_version(
             release_version, ignore_changelog_version
@@ -675,9 +667,7 @@ def main(
 
 @app.command
 def init():
-    from pathlib import Path
-
     from cookiecutter.main import cookiecutter
 
-    cookiecutter_dir = Path(__file__).parent / 'cookiecutter'
+    cookiecutter_dir = this_dir / 'cookiecutter'
     cookiecutter(str(cookiecutter_dir))

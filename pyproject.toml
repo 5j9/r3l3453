@@ -41,6 +41,11 @@ r3l3453 = 'r3l3453.__init__:app'
 name = '5j9'
 email = '5j9@users.noreply.github.com'
 
+[tool.uv.build-backend]
+module-name = "r3l3453"
+module-root = ""
+
+
 [tool.ruff]
 line-length = 79
 format.quote-style = 'single'
