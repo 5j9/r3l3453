@@ -103,7 +103,7 @@ class VersionManager:
         # if simulation:
         #     args.append('--dry-run')
 
-        logger.info(args)
+        logger.debug(args)
         cp = run(args, stdout=PIPE)
         out = cp.stdout.decode().rstrip()
         logger.info(out)
@@ -222,6 +222,7 @@ def get_release_type(base_version: str) -> ReleaseType:
         if base_version.startswith('0.'):
             # Do not bump an early development version to a major release.
             # That type of change should be explicit.
+            logger.debug('Ignoring major change in initial development phase.')
             return ReleaseType.MINOR
         return ReleaseType.MAJOR
     if search(rb'(?:\A|\n)feat[(:]', log, IGNORECASE):
