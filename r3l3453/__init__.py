@@ -104,7 +104,7 @@ class VersionManager:
         #     args.append('--dry-run')
 
         logger.debug(args)
-        cp = run(args, stdout=PIPE)
+        cp = run(args, stdout=PIPE, check=True)
         out = cp.stdout.decode().rstrip()
         logger.info(out)
         new_version = out.partition(' => ')[2]
@@ -125,6 +125,9 @@ class VersionManager:
 
         # bumping to major/minor/patch will remove pre-release parts
         if release_type is ReleaseType.PATCH:
+            try:
+                return self._uv_bump('stable')
+            except CalledProcessError:  # already on stable version
             return self._uv_bump('patch')
         if release_type is ReleaseType.MINOR:
             return self._uv_bump('minor')
