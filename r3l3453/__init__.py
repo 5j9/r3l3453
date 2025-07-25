@@ -404,12 +404,30 @@ cc_pyproject: TOMLDocument = parse(cc_pyproject_content)
 
 
 def check_build_system(pyproject: TOMLDocument) -> None:
+    """Check build system and update/fix uv build-backend settings.
+
+    Project structure must be flat. (src is not supported yet).
+    Namespace packages are not currently supported.
+
+    See:
+    https://docs.astral.sh/uv/concepts/build-backend/#namespace-packages
+    https://docs.astral.sh/uv/reference/settings/#build-backend_module-name
+    """
     try:
         build_system = pyproject['build-system']
     except KeyError:
         info('skipping [build-system] (not found)')
         return
     build_system |= cc_pyproject['build-system']  # type: ignore
+
+    tool: Container = pyproject['tool']  # type: ignore
+    project_name: str = pyproject['project']['name']  # type: ignore
+    module_name = project_name.replace('.', '_').replace('-', '_')
+    uv = {'build-backend': {'module-name': module_name, 'module-root': ''}}
+    try:
+        tool['uv'] |= uv  # type: ignore
+    except KeyError:
+        tool['uv'] = uv
 
 
 def check_pyright(tool: Container) -> None:
@@ -473,25 +491,6 @@ def check_flit(tool: Container):
     )
 
 
-def check_uv(pyproject: TOMLDocument, tool: Container):
-    """Fix/update uv settings.
-
-    Project structure must be flat. (src is not supported yet).
-    Namespace packages are not currently supported.
-
-    See:
-    https://docs.astral.sh/uv/concepts/build-backend/#namespace-packages
-    https://docs.astral.sh/uv/reference/settings/#build-backend_module-name
-    """
-    project_name: str = pyproject['project']['name']  # type: ignore
-    module_name = project_name.replace('.', '_').replace('-', '_')
-    uv = {'build-backend': {'module-name': module_name, 'module-root': ''}}
-    try:
-        tool['uv'] |= uv  # type: ignore
-    except KeyError:
-        tool['uv'] = uv
-
-
 def check_tool(pyproject: TOMLDocument) -> None:
     try:
         tool: Container = pyproject['tool']  # type: ignore
@@ -499,7 +498,6 @@ def check_tool(pyproject: TOMLDocument) -> None:
         pyproject['tool'] = cc_pyproject['tool']
         return
 
-    check_uv(pyproject, tool)
     check_flit(tool)
     check_pyright(tool)
     check_ruff(tool)
@@ -565,8 +563,8 @@ def update_pyproject_toml() -> TOMLDocument:
 
     try:
         check_project(pyproject)
-        check_build_system(pyproject)
         check_tool(pyproject)
+        check_build_system(pyproject)
     finally:
         new_pyproject_content = pyproject.as_string().encode()
         if new_pyproject_content != pyproject_content:
@@ -632,6 +630,9 @@ def main(
     pyproject = update_pyproject_toml()
 
     check_git_status(ignore_git_status)
+
+    if 'build-system' not in pyproject:
+        return
 
     with VersionManager(pyproject) as version_manager:
         release_version = version_manager.bump(release_type)
