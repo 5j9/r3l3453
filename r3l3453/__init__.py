@@ -3,8 +3,8 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from enum import Enum
-from glob import glob
-from os import chdir, listdir, remove
+from os import chdir, getenv, listdir, remove
+from pathlib import Path
 from re import IGNORECASE, Match, match, search
 from shutil import rmtree
 from subprocess import (
@@ -122,15 +122,15 @@ def check_no_old_conf(ignore_dist: bool) -> None:
 
     if 'MANIFEST.in' in entries:
         raise SystemExit(
-            'Use [tool.flit.sdist] instead of `MANIFEST.in` file.'
+            'Use `source-exclude` in [tool.uv.build-backend] instead of `MANIFEST.in` file.'
             'For example:\n'
             '```\n'
-            '[tool.flit.sdist]\n'
-            "include = ['doc/']\n"
-            "exclude = ['doc/*.html']\n"
+            '[tool.uv.build-backend]\n'
+            "source-include = ['doc/**']\n"
+            "source-exclude = ['doc/*.html']\n"
             '```\n'
             'For more infor refer to:\n'
-            'https://flit.pypa.io/en/stable/pyproject_toml.html?highlight=exclude#sdist-section'
+            'https://docs.astral.sh/uv/concepts/build-backend/#file-inclusion-and-exclusion'
         )
 
     if 'pytest.ini' in entries:
@@ -219,6 +219,9 @@ def update_version(
     release_type: ReleaseType | None = None,
 ) -> Version:
     """Update all versions specified in config + CHANGELOG.rst."""
+    # uv supports bumping the version but does not support dynamic versions.
+    # https://docs.astral.sh/uv/guides/package/#updating-your-version
+    # https://github.com/astral-sh/uv/issues/14137
     current_ver = version_file.version
     version_file.version = release_version = get_release_version(
         current_ver, release_type
@@ -246,26 +249,49 @@ def commit_and_tag(release_version: Version):
     check_call(git_tag)
 
 
+def get_pypi_token() -> str:
+    token = getenv('UV_PUBLISH_TOKEN')
+    if token is not None:
+        return token
+
+    # uv does not support reading .pypirc file.
+    # https://github.com/astral-sh/uv/issues/7676
+    pypirc = Path.home() / Path('.pypirc')
+
+    from configparser import ConfigParser, Error
+
+    config = ConfigParser()
+
+    try:
+        config.read_string(pypirc.read_bytes().decode())
+    except FileNotFoundError:
+        raise SystemExit(f"Error: .pypirc file not found at '{pypirc}'")
+    except Error as e:
+        raise SystemExit(f'Error parsing .pypirc file: {e!r}')
+
+    try:
+        return config['pypi']['password']
+    except KeyError as e:
+        raise SystemExit(f"config['pypi']['password'] raised {e!r}")
+
+
 def upload_to_pypi(timeout: int):
+    # https://docs.astral.sh/uv/guides/package/#building-your-package
     build = ('uv', 'build')
     if simulation is True:
         info(build)
     else:
         check_call(build)
-    # using `twine` instead of `flit publish` because it has --skip-existing
-    # option. See:
-    # https://github.com/pypa/flit/issues/678#issuecomment-2156286057
-    publish = (
-        'python',
-        '-m',
-        'twine',
-        'upload',
-        '--skip-existing',
-        *glob('dist/*'),
-    )
+
+    token = get_pypi_token()
+    # https://docs.astral.sh/uv/guides/package/#publishing-your-package
+    publish = ['uv', 'publish', '--token']
     if simulation is True:
+        # do not print token
+        publish.append('<token>')
         info(publish)
         return
+    publish.append(token)
     try:
         while True:
             try:
@@ -284,8 +310,7 @@ def upload_to_pypi(timeout: int):
                 continue
             break
     finally:
-        for d in ('dist', 'build'):
-            rmtree(d, ignore_errors=True)
+        rmtree('dist', ignore_errors=True)
 
 
 def _unreleased_to_version(
@@ -431,6 +456,18 @@ def check_pytest(pyproject: TOMLDocument, tool: Container):
     pio['asyncio_default_fixture_loop_scope'] = 'session'
 
 
+def check_flit(tool: Container):
+    flit = tool.get('flit')
+    if flit is None:
+        return
+    # more migration assistant could be implemented here
+    del tool['flit']
+    raise SystemExit(
+        '[tool.flit] settings found. Migrate the build-backend from flit to uv.\n'
+        'https://docs.astral.sh/uv/concepts/build-backend/#choosing-a-build-backend'
+    )
+
+
 def check_tool(pyproject: TOMLDocument) -> None:
     try:
         tool: Container = pyproject['tool']  # type: ignore
@@ -438,11 +475,12 @@ def check_tool(pyproject: TOMLDocument) -> None:
         pyproject['tool'] = cc_pyproject['tool']
         return
 
+    check_flit(tool)
     check_pyright(tool)
     check_ruff(tool)
     check_pytest(pyproject, tool)
     if tool.get('setuptools') is not None:
-        warning('Removing setuptools from pyproject; use flit instead.')
+        warning('Removing setuptools from pyproject; use uv instead.')
         del tool['setuptools']
 
 
@@ -499,16 +537,16 @@ def check_pyproject_toml() -> TOMLDocument:
     return pyproject
 
 
-def get_version_path(pyproject: TOMLDocument) -> str | None:
+def get__version__path(pyproject: TOMLDocument) -> str:
     try:
-        # Package may have different names for installation and import, see:
-        # https://flit.pypa.io/en/stable/pyproject_toml.html#module-section
-        name = pyproject['tool']['flit']['module']['name']  # type: ignore
+        backend_get = pyproject['tool']['uv']['build-backend'].get  # type: ignore
     except KeyError:
-        name = pyproject['project'].get('name')  # type: ignore
-    if name is None:
-        return None
-    return f'{name}/__init__.py'
+        return 'src/__init__.py'
+    # namespace packages are not currently supported
+    # https://docs.astral.sh/uv/concepts/build-backend/#namespace-packages
+    # default module-root is src and default module-name is None.
+    # https://docs.astral.sh/uv/reference/settings/#build-backend_module-name
+    return f'{backend_get("module-root", "src")}{backend_get("module-name", "")}/__init__.py'
 
 
 def check_git_status(ignore_git_status: bool):
@@ -567,10 +605,7 @@ def main(
     check_no_old_conf(ignore_dist)
     pyproject = check_pyproject_toml()
 
-    version_path = get_version_path(pyproject)
-    if version_path is None:
-        info('skipping rest of checks since version_path was not found')
-        return
+    version_path = get__version__path(pyproject)
 
     check_git_status(ignore_git_status)
 
