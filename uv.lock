@@ -316,7 +316,7 @@ wheels = [
 
 [[package]]
 name = "r3l3453"
-version = "0.51.6.dev1"
+version = "0.51.6"
 source = { editable = "." }
 dependencies = [
     { name = "cookiecutter" },
