@@ -94,7 +94,11 @@ class VersionManager:
         self.close()
 
     def _uv_bump(self, *bumps: str):
-        args = ['uv', 'version', '--frozen']
+        args = ['uv', 'version']
+
+        if self._pyproject['project']['name'] == 'r3l3453':  # type: ignore
+            # syncing will fail while r3l3453 is running
+            args.append('--no-sync')
 
         for bump in bumps:
             args += ['--bump', bump]
