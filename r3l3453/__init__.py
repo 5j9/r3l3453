@@ -677,11 +677,25 @@ def main(
 
     while True:
         try:
-            check_call(('git', 'push', '--follow-tags'))
-        except CalledProcessError:
-            warning(
-                'CalledProcessError on git push. Will retry until success.'
+            run(
+                ('git', 'push', '--follow-tags'),
+                capture_output=True,
+                check=True,
             )
+        except CalledProcessError as err:
+            if err.stderr.startswith(
+                b'fatal: No configured push destination.'
+            ):
+                raise SystemExit(
+                    'No configured push destination. Try:\n'
+                    'git remote add origin https://github.com/your-username/your-repo-name.git'
+                )
+            print(err.stdout.decode())
+            print(err.stderr.decode())
+            warning(
+                'CalledProcessError on git push. Will retry after 5s until success.'
+            )
+            sleep(5)
             continue
         break
 
