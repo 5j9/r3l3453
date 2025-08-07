@@ -47,6 +47,9 @@ info = logger.info
 debug = logger.debug
 
 
+project_entries: set[str]
+
+
 class VersionManager:
     __slots__ = '_init_file', '_offset', '_pyproject', '_trail', '_version'
 
@@ -157,8 +160,7 @@ def check_setup_cfg():
 
 
 def check_no_old_conf(ignore_dist: bool) -> None:
-    entries = set(listdir('.'))
-
+    entries = project_entries
     if 'r3l3453.json' in entries:
         warning(
             'Removed r3l3453.json as it is not needed anymore.\n'
@@ -460,8 +462,16 @@ def check_ruff(tool: Container):
 
 
 def check_pytest(pyproject: TOMLDocument, tool: Container):
+    pytest = tool.get('pytest')
+
+    if pytest is None:
+        if 'tests' not in project_entries:
+            return
+        tool['pytest'] = cc_pyproject['tool']['pytest']  # type: ignore
+        return
+
     cc_pio: Any = cc_pyproject['tool']['pytest']['ini_options']  # type: ignore
-    pio: Container = tool['pytest']['ini_options']  # type: ignore
+    pio: Container = pytest['ini_options']
     pio['addopts'] = cc_pio['addopts']
     dep_groups = pyproject.get('dependency-groups')
     if dep_groups is None:
@@ -620,12 +630,13 @@ def main(
     ignore_dist: bool = False,
     timeout: int = 90,
 ):
-    global simulation
+    global simulation, project_entries
     simulation = simulate
     info(f'r3l3453 v{__version__}')
     if path is not None:
         chdir(path)
 
+    project_entries = set(listdir('.'))
     check_no_old_conf(ignore_dist)
     pyproject = update_pyproject_toml()
 
