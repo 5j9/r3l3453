@@ -22,6 +22,8 @@ from loguru import logger
 from tomlkit import TOMLDocument, parse
 from tomlkit.container import Container
 
+pyproject: Any
+
 
 class ReleaseType(Enum):
     DEV = 'dev'
@@ -51,12 +53,11 @@ project_entries: set[str]
 
 
 class VersionManager:
-    __slots__ = '_init_file', '_offset', '_pyproject', '_trail', '_version'
+    __slots__ = '_init_file', '_offset', '_trail', '_version'
 
-    def __init__(self, pyproject: TOMLDocument):
+    def __init__(self):
         # relative path assuming cwd is root
-        self._pyproject = pyproject
-        path = f'{pyproject["tool"]["uv"]["build-backend"]["module-name"]}/__init__.py'  # type: ignore
+        path = f'{pyproject["tool"]["uv"]["build-backend"]["module-name"]}/__init__.py'
         file = self._init_file = open(
             path, 'r+', newline='\n', encoding='utf8'
         )
@@ -93,13 +94,13 @@ class VersionManager:
 
     def __exit__(self, *_):
         if simulation:  # restore pyproject version
-            write_pyproject(self._pyproject.as_string().encode())
+            write_pyproject(pyproject.as_string().encode())
         self.close()
 
     def _uv_bump(self, *bumps: str):
         args = ['uv', 'version']
 
-        if self._pyproject['project']['name'] == 'r3l3453':  # type: ignore
+        if pyproject['project']['name'] == 'r3l3453':
             # syncing will fail while r3l3453 is running
             args.append('--no-sync')
 
@@ -405,7 +406,7 @@ cc_pyproject_content = (
 cc_pyproject: TOMLDocument = parse(cc_pyproject_content)
 
 
-def check_build_system(pyproject: TOMLDocument) -> None:
+def check_build_system() -> None:
     """Check build system and update/fix uv build-backend settings.
 
     Project structure must be flat. (src is not supported yet).
@@ -420,16 +421,7 @@ def check_build_system(pyproject: TOMLDocument) -> None:
     except KeyError:
         info('skipping [build-system] (not found)')
         return
-    build_system |= cc_pyproject['build-system']  # type: ignore
-
-    tool: Container = pyproject['tool']  # type: ignore
-    project_name: str = pyproject['project']['name']  # type: ignore
-    module_name = project_name.replace('.', '_').replace('-', '_')
-    uv = {'build-backend': {'module-name': module_name, 'module-root': ''}}
-    try:
-        tool['uv'] |= uv  # type: ignore
-    except KeyError:
-        tool['uv'] = uv
+    build_system |= cc_pyproject['build-system']
 
 
 def check_pyright(tool: Container) -> None:
@@ -461,7 +453,7 @@ def check_ruff(tool: Container):
         raise SystemExit('ruff check --fix returned non-zero')
 
 
-def check_pytest(pyproject: TOMLDocument, tool: Container):
+def check_pytest(tool: Container):
     pytest = tool.get('pytest')
 
     if pytest is None:
@@ -489,29 +481,48 @@ def check_pytest(pyproject: TOMLDocument, tool: Container):
     pio['asyncio_default_fixture_loop_scope'] = 'session'
 
 
-def check_flit(tool: Container):
-    flit = tool.get('flit')
-    if flit is None:
-        return
-    # more migration assistant could be implemented here
-    del tool['flit']
-    raise SystemExit(
-        '[tool.flit] settings found. Migrate the build-backend from flit to uv.\n'
-        'https://docs.astral.sh/uv/concepts/build-backend/#choosing-a-build-backend'
+def check_uv(tool: Container, module_name: str | None = None):
+    tool.setdefault(
+        'uv',
+        {
+            'build-backend': {
+                'module-root': '',
+                'module-name': module_name
+                or pyproject['project']['name']
+                .replace('.', '_')
+                .replace('-', '_'),
+            }
+        },
     )
 
 
-def check_tool(pyproject: TOMLDocument) -> None:
+def check_flit(tool: Container) -> str | None:
+    flit = tool.get('flit')
+    if flit is None:
+        return
+    warning(
+        '[tool.flit] settings found. Need to migrate the build-backend from flit to uv.\n'
+        'https://docs.astral.sh/uv/concepts/build-backend/#choosing-a-build-backend'
+    )
+    del tool['flit']
     try:
-        tool: Container = pyproject['tool']  # type: ignore
+        return flit['module']['name']
+    except KeyError:
+        pass
+
+
+def check_tool() -> None:
+    try:
+        tool: Container = pyproject['tool']
     except KeyError:
         pyproject['tool'] = cc_pyproject['tool']
         return
 
-    check_flit(tool)
+    module_name = check_flit(tool)
+    check_uv(tool, module_name)
     check_pyright(tool)
     check_ruff(tool)
-    check_pytest(pyproject, tool)
+    check_pytest(tool)
     if tool.get('setuptools') is not None:
         warning('Removing setuptools from pyproject; use uv instead.')
         del tool['setuptools']
@@ -519,17 +530,22 @@ def check_tool(pyproject: TOMLDocument) -> None:
 
 def check_version(project: TOMLDocument):
     if 'version' not in project:
-        raise SystemExit('add project.version')
+        info('copying __init__ version to project.version')
+        project['version'] = VersionManager().init_version
 
     # uv does not support dynamic version
-    dynamic = project.get('dynamic')
+    dynamic: list[str] | None = project.get('dynamic')
     if dynamic is None:
         return
     if 'version' in dynamic:
-        raise SystemExit('remove version from project.dynamic')
+        info('removing version from project.dynamic')
+        if len(dynamic) == 1:
+            del project['dynamic']
+        else:
+            dynamic.remove('version')
 
 
-def check_project(pyproject: TOMLDocument) -> None:
+def check_project() -> None:
     project = pyproject.get('project')
     if project is None:
         pyproject['project'] = cc_pyproject['project']
@@ -562,6 +578,7 @@ def write_pyproject(content: bytes):
 
 def update_pyproject_toml() -> TOMLDocument:
     # https://packaging.python.org/tutorials/packaging-projects/
+    global pyproject
     try:
         with open('pyproject.toml', 'rb') as f:
             pyproject_content = f.read()
@@ -572,9 +589,9 @@ def update_pyproject_toml() -> TOMLDocument:
     pyproject = parse(pyproject_content)
 
     try:
-        check_project(pyproject)
-        check_tool(pyproject)
-        check_build_system(pyproject)
+        check_tool()
+        check_build_system()
+        check_project()
     finally:
         new_pyproject_content = pyproject.as_string().encode()
         if new_pyproject_content != pyproject_content:
@@ -590,8 +607,7 @@ def check_git_status(ignore_git_status: bool):
             info(f'ignoring git status:\n{status.decode()}')
         else:
             raise SystemExit(
-                'git status is not clean. '
-                'Use --ignore-git-status to ignore this error.'
+                'git status is not clean. Use --ignore-git-status to ignore this error.'
             )
     branch = (
         check_output(('git', 'branch', '--show-current')).rstrip().decode()
@@ -638,14 +654,14 @@ def main(
 
     project_entries = set(listdir('.'))
     check_no_old_conf(ignore_dist)
-    pyproject = update_pyproject_toml()
+    update_pyproject_toml()
 
     check_git_status(ignore_git_status)
 
     if 'build-system' not in pyproject:
         return
 
-    with VersionManager(pyproject) as version_manager:
+    with VersionManager() as version_manager:
         release_version = version_manager.bump(release_type)
         changelog_exists = changelog_unreleased_to_version(
             release_version, ignore_changelog_version
