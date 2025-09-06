@@ -482,18 +482,20 @@ def check_pytest(tool: Container):
 
 
 def check_uv(tool: Container, module_name: str | None = None):
-    tool.setdefault(
-        'uv',
-        {
-            'build-backend': {
-                'module-root': '',
-                'module-name': module_name
-                or pyproject['project']['name']
-                .replace('.', '_')
-                .replace('-', '_'),
-            }
-        },
-    )
+    uv_template = {
+        'build-backend': {
+            'module-root': '',
+            'module-name': module_name
+            or pyproject['project']['name']
+            .replace('.', '_')
+            .replace('-', '_'),
+        }
+    }
+    uv = tool.setdefault('uv', uv_template)
+    if uv is uv_template:
+        return
+    # if some other uv setting like [tool.uv.sources] exists
+    uv.setdefault('build-backend', uv_template['build-backend'])
 
 
 def check_flit(tool: Container) -> str | None:
