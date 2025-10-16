@@ -323,7 +323,7 @@ wheels = [
 
 [[package]]
 name = "r3l3453"
-version = "0.53.2.dev1"
+version = "0.53.2"
 source = { editable = "." }
 dependencies = [
     { name = "cookiecutter" },
