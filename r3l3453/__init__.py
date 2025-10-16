@@ -198,6 +198,15 @@ def check_no_old_conf(ignore_dist: bool) -> None:
         )
         remove('pytest.ini')
 
+    try:
+        run(('git', 'ls-files', '--error-unmatch', 'uv.lock'), check=True)
+    except CalledProcessError:
+        warning(
+            'Removing uv.lock from git. '
+            'Assuming it is already in global .gitignore else add it.'
+        )
+        run(('git', 'rm', '--cached', 'uv.lock'))
+
     if (
         ignore_dist is False
         and 'dist' in entries
