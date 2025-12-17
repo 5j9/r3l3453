@@ -54,3 +54,5 @@ reportUnnecessaryComparison = 'warning'
 reportUnnecessaryContains = 'warning'
 reportUnnecessaryIsInstance = 'warning'
 reportUnnecessaryTypeIgnoreComment = 'warning'
+venvPath = "."
+venv = ".venv"

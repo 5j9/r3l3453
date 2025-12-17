@@ -80,3 +80,5 @@ reportConstantRedefinition = 'error'
 reportTypeCommentUsage = 'warning'
 reportUnnecessaryComparison = 'warning'
 reportInvalidStringEscapeSequence = false
+venvPath = "."
+venv = ".venv"
