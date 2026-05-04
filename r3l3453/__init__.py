@@ -13,12 +13,11 @@ from subprocess import (
     check_output,
     run,
 )
-from sys import stderr
 from time import sleep
 from typing import Annotated, Any
 
+from applog import logger
 from cyclopts import App, Parameter
-from loguru import logger
 from tomlkit import TOMLDocument, parse
 from tomlkit.container import Container
 
@@ -33,16 +32,6 @@ class ReleaseType(Enum):
 
 
 simulation = False
-
-
-logger.remove()
-logger.add(
-    stderr,
-    format='<level>{level: <8}</level><blue>{file.path}:{line}</blue>\t{message}',
-    colorize=True,
-    backtrace=True,  # Optional: to include full backtrace on errors
-    diagnose=True,  # Optional: to include variable values in backtrace
-)
 
 warning = logger.warning
 info = logger.info

@@ -13,14 +13,14 @@ classifiers = [
     'Topic :: Software Development',
 ]
 # required for nested f-strings
-requires-python = '>=3.12'
+requires-python = '>=3.14'
 dependencies = [
     'cyclopts',
     'ruff',
     'cookiecutter',
     'tomlkit',
     'uv',
-    "loguru>=0.7.3",
+    "applog>=0.1",
 ]
 
 
