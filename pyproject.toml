@@ -16,10 +16,8 @@ classifiers = [
 requires-python = '>=3.14'
 dependencies = [
     'cyclopts',
-    'ruff',
     'cookiecutter',
     'tomlkit',
-    'uv',
     "applog>=0.1",
 ]
 
