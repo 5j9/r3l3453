@@ -458,7 +458,7 @@ def check_pytest(tool: Container):
         tool['pytest'] = cc_pyproject['tool']['pytest']  # type: ignore
         return
 
-    if ini_options := pytest['ini_options']:
+    if ini_options := pytest.get('ini_options'):
         logger.warning('migrate pytest ini_options to pytest')
         pytest |= ini_options
         del pytest['ini_options']
