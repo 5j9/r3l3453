@@ -68,8 +68,8 @@ lint.ignore = [
 
 [tool.pytest]
 addopts = ["--quiet", "--tb=short"]
-truncation_limit_lines = 0
-truncation_limit_chars = 0
+truncation_limit_lines = '0'
+truncation_limit_chars = '0'
 
 [tool.pyright]
 typeCheckingMode = 'standard'
