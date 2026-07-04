@@ -458,9 +458,13 @@ def check_pytest(tool: Container):
         tool['pytest'] = cc_pyproject['tool']['pytest']  # type: ignore
         return
 
-    cc_pio: Any = cc_pyproject['tool']['pytest']['ini_options']  # type: ignore
-    pio: Container = pytest['ini_options']
-    pio['addopts'] = cc_pio['addopts']
+    if ini_options := pytest['ini_options']:
+        logger.warning('migrate pytest ini_options to pytest')
+        pytest |= ini_options
+        del pytest['ini_options']
+
+    cc_pytest: Any = cc_pyproject['tool']['pytest']  # type: ignore
+    pytest |= cc_pytest
     dep_groups = pyproject.get('dependency-groups')
     if dep_groups is None:
         return
@@ -472,9 +476,9 @@ def check_pytest(tool: Container):
             break
     else:
         return
-    pio['asyncio_mode'] = 'auto'
-    pio['asyncio_default_test_loop_scope'] = 'session'
-    pio['asyncio_default_fixture_loop_scope'] = 'session'
+    pytest['asyncio_mode'] = 'auto'
+    pytest['asyncio_default_test_loop_scope'] = 'session'
+    pytest['asyncio_default_fixture_loop_scope'] = 'session'
 
 
 def check_uv(tool: Container, module_name: str | None = None):

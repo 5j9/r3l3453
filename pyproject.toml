@@ -66,8 +66,10 @@ lint.ignore = [
     'RUF059', # Unpacked variable never used
 ]
 
-[tool.pytest.ini_options]
-addopts = '--quiet --tb=short'
+[tool.pytest]
+addopts = ["--quiet", "--tb=short"]
+truncation_limit_lines = 0
+truncation_limit_chars = 0
 
 [tool.pyright]
 typeCheckingMode = 'standard'
