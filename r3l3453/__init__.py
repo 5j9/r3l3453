@@ -437,7 +437,7 @@ def check_ruff(tool: Container):
 
     tool['ruff'] = cc_pyproject['tool']['ruff']  # type: ignore
 
-    format_output = check_output(['ruff', 'format', '.'])
+    format_output = check_output(['uvx', 'ruff', 'format', '.'])
     if b' reformatted' in format_output:
         raise SystemExit('ruff reformatted files')
     elif b' left unchanged' not in format_output:
@@ -445,7 +445,7 @@ def check_ruff(tool: Container):
 
     # ruff may add a unified command for linting and formatting.
     # Waiting for https://github.com/astral-sh/ruff/issues/8232 .
-    if run(['ruff', 'check', '--fix']).returncode != 0:
+    if run(['uvx', 'ruff', 'check', '--fix']).returncode != 0:
         raise SystemExit('ruff check --fix returned non-zero')
 
 
