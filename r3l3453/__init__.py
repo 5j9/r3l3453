@@ -402,7 +402,7 @@ cc_pyproject_content = (
 cc_pyproject: TOMLDocument = parse(cc_pyproject_content)
 
 
-def check_build_system() -> None:
+def check_build_system(rewrite: bool) -> None:
     """Check build system and update/fix uv build-backend settings.
 
     Project structure must be flat. (src is not supported yet).
@@ -412,10 +412,14 @@ def check_build_system() -> None:
     https://docs.astral.sh/uv/concepts/build-backend/#namespace-packages
     https://docs.astral.sh/uv/reference/settings/#build-backend_module-name
     """
+    if rewrite:
+        pyproject['build-system'] = cc_pyproject['build-system']
+        return
+
     try:
         build_system = pyproject['build-system']
     except KeyError:
-        info('skipping [build-system] (not found)')
+        info('[build-system] not found. Use --rewrite-build-system to add.')
         return
     build_system |= cc_pyproject['build-system']
 
@@ -578,7 +582,7 @@ def write_pyproject(content: bytes):
         f.write(content)
 
 
-def update_pyproject_toml() -> TOMLDocument:
+def update_pyproject_toml(rewrite_build_system) -> TOMLDocument:
     # https://packaging.python.org/tutorials/packaging-projects/
     global pyproject
     try:
@@ -592,7 +596,7 @@ def update_pyproject_toml() -> TOMLDocument:
 
     try:
         check_tool()
-        check_build_system()
+        check_build_system(rewrite_build_system)
         check_project()
     finally:
         new_pyproject_content = pyproject.as_string().encode()
@@ -647,6 +651,7 @@ def main(
     ] = False,
     ignore_dist: bool = False,
     timeout: int = 90,
+    rewrite_build_system: bool = False,
 ):
     global simulation, project_entries
     simulation = simulate
@@ -656,7 +661,7 @@ def main(
 
     project_entries = set(listdir('.'))
     check_no_old_conf(ignore_dist)
-    update_pyproject_toml()
+    update_pyproject_toml(rewrite_build_system)
 
     check_git_status(ignore_git_status)
 
