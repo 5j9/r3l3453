@@ -35,6 +35,7 @@ extend-select = [
 ]
 ignore = [
     'BLE001', # blind-except
+    'DTZ005', # call-datetime-now-without-tzinfo
     'E721', # Do not compare types, use `isinstance()`
     'PLW1510', # subprocess-run-without-check
     'RUF001', # ambiguous-unicode-character-string
