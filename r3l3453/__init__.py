@@ -434,12 +434,23 @@ def check_pyright(tool: Container) -> None:
         pyright |= cc_pyright | pyright
 
 
+def _merge_ruff_config(tool: dict):
+    """Merge template into tool with special rules for sub-tables."""
+    tool.setdefault('ruff', {})
+
+    for key, value in cc_pyproject['tool']['ruff'].items():  # type: ignore
+        if key == 'lint':
+            tool['ruff'].setdefault('lint', {})
+            tool['ruff']['lint'] |= value  # only add/override from template
+        else:
+            tool['ruff'][key] = value  # full override for everything else
+
+
 def check_ruff(tool: Container):
     if 'isort' in tool:
         del tool['isort']
         warning('[isort] was removed from pyproject; use ruff instead.')
-
-    tool['ruff'] = cc_pyproject['tool']['ruff']  # type: ignore
+    _merge_ruff_config(tool)
 
     format_output = check_output(['uvx', 'ruff', 'format', '.'])
     if b' reformatted' in format_output:
