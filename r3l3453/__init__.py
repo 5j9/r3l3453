@@ -1,4 +1,4 @@
-__version__ = '0.58.5.dev1'
+__version__ = '0.58.5'
 from datetime import UTC, datetime
 from enum import Enum
 from os import chdir, getenv, listdir, remove
