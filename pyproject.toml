@@ -48,6 +48,8 @@ module-root = ""
 line-length = 79
 format.quote-style = 'single'
 
+exclude = ['r3l3453/cookiecutter/']
+
 [tool.ruff.lint]
 extend-select = [
     'W605', # invalid-escape-sequence
