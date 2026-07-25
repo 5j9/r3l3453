@@ -51,13 +51,6 @@ format.quote-style = 'single'
 exclude = ['r3l3453/cookiecutter/']
 
 [tool.ruff.lint]
-extend-select = [
-    'W605', # invalid-escape-sequence
-    'FA',   # flake8-future-annotations
-    'I',    # isort
-    'UP',   # pyupgrade
-    'RUF',  # Ruff-specific rules (RUF)
-]
 ignore = [
     'B023', # function-uses-loop-variable
     'BLE001', # blind-except

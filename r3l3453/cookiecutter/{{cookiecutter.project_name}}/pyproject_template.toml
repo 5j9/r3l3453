@@ -26,13 +26,6 @@ line-length = 79
 format.quote-style = 'single'
 [tool.ruff.lint]
 isort.combine-as-imports = true
-extend-select = [
-    'W605', # invalid-escape-sequence
-    'FA',   # flake8-future-annotations
-    'I',    # isort
-    'UP',   # pyupgrade
-    'RUF',  # Ruff-specific rules (RUF)
-]
 ignore = [
     'B023', # function-uses-loop-variable
     'BLE001', # blind-except
