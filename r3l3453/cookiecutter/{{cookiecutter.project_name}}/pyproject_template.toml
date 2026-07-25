@@ -41,6 +41,8 @@ ignore = [
     'RUF012', # mutable-class-default
     'RUF059', # Unpacked variable never used
     'PLW1510', # subprocess-run-without-check
+    'SIM102', # collapsible-if
+    'SIM115', # Use a context manager for opening files
 ]
 
 [tool.pytest]
