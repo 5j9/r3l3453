@@ -59,6 +59,7 @@ extend-select = [
     'RUF',  # Ruff-specific rules (RUF)
 ]
 ignore = [
+    'B023', # function-uses-loop-variable
     'BLE001', # blind-except
     'DTZ005', # call-datetime-now-without-tzinfo
     'E721', # Do not compare types, use `isinstance()`
