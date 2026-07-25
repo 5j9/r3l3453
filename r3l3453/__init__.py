@@ -694,7 +694,7 @@ def main(
                 if isinstance(e, KeyboardInterrupt):
                     info('KeyboardInterrupt')
                     return
-                raise e
+                raise
 
         # prepare next dev0
         new_dev_version = version_manager.bump(ReleaseType.DEV)
