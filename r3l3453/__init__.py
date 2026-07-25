@@ -426,7 +426,7 @@ def check_build_system(rewrite: bool) -> None:
 
 def check_pyright(tool: Container) -> None:
     pyright = tool.get('pyright')
-    cc_pyright: Any = cc_pyproject['tool']['pyright']  # type: ignore
+    cc_pyright: Any = cc_pyproject['tool']['pyright']
     if pyright is None:
         tool['pyright'] = cc_pyright
         return
@@ -438,7 +438,7 @@ def _merge_ruff_config(tool: dict):
     """Merge template into tool with special rules for sub-tables."""
     tool.setdefault('ruff', {})
 
-    for key, value in cc_pyproject['tool']['ruff'].items():  # type: ignore
+    for key, value in cc_pyproject['tool']['ruff'].items():
         if key == 'lint':
             tool['ruff'].setdefault('lint', {})
             tool['ruff']['lint'] |= value  # only add/override from template
@@ -470,7 +470,7 @@ def check_pytest(tool: Container):
     if pytest is None:
         if 'tests' not in project_entries:
             return
-        tool['pytest'] = cc_pyproject['tool']['pytest']  # type: ignore
+        tool['pytest'] = cc_pyproject['tool']['pytest']
         return
 
     if ini_options := pytest.get('ini_options'):
@@ -478,7 +478,7 @@ def check_pytest(tool: Container):
         pytest |= ini_options
         del pytest['ini_options']
 
-    cc_pytest: Any = cc_pyproject['tool']['pytest']  # type: ignore
+    cc_pytest: Any = cc_pyproject['tool']['pytest']
     pytest |= cc_pytest
     dep_groups = pyproject.get('dependency-groups')
     if dep_groups is None:
