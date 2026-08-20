@@ -42,6 +42,7 @@ ignore = [
     'SIM103', # Return the condition directly
     'SIM115', # Use a context manager for opening files
 ]
+unfixable = ["F401"]  # unused-import
 
 [tool.pytest]
 addopts = ["--quiet", "--tb=short"]

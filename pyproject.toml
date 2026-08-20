@@ -67,7 +67,7 @@ ignore = [
     'SIM103', # Return the condition directly
     'SIM115', # Use a context manager for opening files
 ]
-
+unfixable = ["F401"]  # unused-import
 isort.combine-as-imports = true
 
 [tool.pytest]
