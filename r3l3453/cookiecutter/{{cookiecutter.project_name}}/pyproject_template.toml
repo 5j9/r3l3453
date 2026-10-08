@@ -45,7 +45,7 @@ ignore = [
 unfixable = ["F401"]  # unused-import
 
 [tool.pytest]
-addopts = ["--quiet", "--tb=short"]
+addopts = ["--quiet", "--tb=short", "--report-chars=N"]
 truncation_limit_lines = '0'
 truncation_limit_chars = '0'
 
