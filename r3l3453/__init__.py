@@ -425,6 +425,7 @@ def check_build_system(rewrite: bool) -> None:
 
 
 def check_pyrefly(tool: Container) -> None:
+    tool.pop('pyright', None)
     pyrefly = tool.get('pyrefly')
     cc_pyrefly: Any = cc_pyproject['tool']['pyrefly']
     if pyrefly is None:
