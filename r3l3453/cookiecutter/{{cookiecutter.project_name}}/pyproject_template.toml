@@ -49,17 +49,7 @@ addopts = ["--quiet", "--tb=short", "--report-chars=N"]
 truncation_limit_lines = 0
 truncation_limit_chars = 0
 
-[tool.pyright]
-typeCheckingMode = 'standard'
-reportInvalidStringEscapeSequence = false
-reportConstantRedefinition = 'error'
-reportDeprecated = 'warning'
-reportPropertyTypeMismatch = 'error'
-reportTypeCommentUsage = 'warning'
-reportUnnecessaryCast = 'warning'
-reportUnnecessaryComparison = 'warning'
-reportUnnecessaryContains = 'warning'
-reportUnnecessaryIsInstance = 'warning'
-reportUnnecessaryTypeIgnoreComment = 'warning'
-venvPath = "."
-venv = ".venv"
+[tool.pyrefly]
+infer-with-first-use = false
+[tool.pyrefly.errors]
+incompatible-comparison = "warn"

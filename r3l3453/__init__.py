@@ -71,7 +71,7 @@ class VersionManager:
             info(f'changing init version from {self._version} to {version}')
         else:
             (file := self._init_file).seek(self._offset)
-            file.write(str(version) + self._trail)
+            file.write(version + self._trail)
             file.truncate()
         self._version = version
 
@@ -424,14 +424,13 @@ def check_build_system(rewrite: bool) -> None:
     build_system |= cc_pyproject['build-system']
 
 
-def check_pyright(tool: Container) -> None:
-    pyright = tool.get('pyright')
-    cc_pyright: Any = cc_pyproject['tool']['pyright']
-    if pyright is None:
-        tool['pyright'] = cc_pyright
+def check_pyrefly(tool: Container) -> None:
+    pyrefly = tool.get('pyrefly')
+    cc_pyrefly: Any = cc_pyproject['tool']['pyrefly']
+    if pyrefly is None:
+        tool['pyrefly'] = cc_pyrefly
         return
-    if pyright.keys() < cc_pyright.keys():
-        pyright |= cc_pyright | pyright
+    pyrefly |= cc_pyrefly
 
 
 def _merge_ruff_config(tool: dict):
@@ -537,7 +536,7 @@ def check_tool() -> None:
 
     module_name = check_flit(tool)
     check_uv(tool, module_name)
-    check_pyright(tool)
+    check_pyrefly(tool)
     check_ruff(tool)
     check_pytest(tool)
     if tool.get('setuptools') is not None:
