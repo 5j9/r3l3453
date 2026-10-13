@@ -51,5 +51,6 @@ truncation_limit_chars = 0
 
 [tool.pyrefly]
 infer-with-first-use = false
+min-severity = "info"
 [tool.pyrefly.errors]
 incompatible-comparison = "warn"
