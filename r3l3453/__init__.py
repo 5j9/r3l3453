@@ -1,3 +1,5 @@
+from packaging.specifiers import SpecifierSet
+
 __version__ = '0.58.18.dev1'
 from datetime import UTC, datetime
 from enum import Enum
@@ -478,7 +480,10 @@ def set_min_ver(req: Requirement, min_version: str) -> None:
     if existing is not None and existing >= Version(min_version):
         return
 
-    req.specifier &= f'>={min_version}'
+    req.specifier = (
+        SpecifierSet(s for s in req.specifier if s.operator not in ('>=', '>'))
+        & f'>={min_version}'
+    )
 
 
 def check_pytest(tool: Container):
