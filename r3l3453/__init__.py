@@ -1,6 +1,6 @@
 from packaging.specifiers import SpecifierSet
 
-__version__ = '0.58.18'
+__version__ = '0.58.19.dev1'
 from datetime import UTC, datetime
 from enum import Enum
 from os import chdir, getenv, listdir, remove
