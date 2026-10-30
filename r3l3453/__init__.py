@@ -487,21 +487,20 @@ def check_pytest(tool: Container):
     dev: list | None = dep_groups.get('dev')
     if dev is None:
         return
+    dev_reqs = [Requirement(r) for r in dev]
 
-    for i, dep in enumerate(dev):
-        req = Requirement(dep)
-        if req.name.lower() == 'pytest':
+    for i, req in enumerate(dev_reqs):
+        name = req.name
+        if name == 'pytest':
             req.specifier &= '>=9.2.0'
             dev[i] = str(req)
-
-    for dep in dev:
-        if dep.startswith('pytest-asyncio'):
-            break
-    else:
-        return
-    pytest['asyncio_mode'] = 'auto'
-    pytest['asyncio_default_test_loop_scope'] = 'session'
-    pytest['asyncio_default_fixture_loop_scope'] = 'session'
+        if name == 'pytest-asyncio':
+            pytest['asyncio_mode'] = 'auto'
+            pytest['asyncio_default_test_loop_scope'] = 'session'
+            pytest['asyncio_default_fixture_loop_scope'] = 'session'
+        if name == 'pytest-aiohutils':
+            req.specifier &= '>=0.23.2'
+            dev[i] = str(req)
 
 
 def check_uv(tool: Container, module_name: str | None = None):
