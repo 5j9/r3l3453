@@ -16,11 +16,13 @@ classifiers = [
 requires-python = '>=3.14'
 dependencies = [
     'cyclopts',
-    'cookiecutter',
     'tomlkit',
     "applog>=0.1",
     "packaging>=26.3",
 ]
+
+[project.optional-dependencies]
+init = ['cookiecutter']
 
 
 [project.license]

@@ -764,7 +764,12 @@ def main(
 
 @app.command
 def init():
-    from cookiecutter.main import cookiecutter
+    try:
+        from cookiecutter.main import cookiecutter
+    except ImportError:
+        raise SystemExit(
+            'Install r3l3453 with the [init] extra to use this command.'
+        ) from None
 
     cookiecutter_dir = this_dir / 'cookiecutter'
     cookiecutter(str(cookiecutter_dir))
