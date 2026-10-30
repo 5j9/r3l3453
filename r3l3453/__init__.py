@@ -18,6 +18,7 @@ from typing import Annotated, Any
 
 from applog import logger
 from cyclopts import App, Parameter
+from packaging.requirements import Requirement
 from tomlkit import TOMLDocument, parse
 from tomlkit.container import Container
 
@@ -486,6 +487,13 @@ def check_pytest(tool: Container):
     dev: list | None = dep_groups.get('dev')
     if dev is None:
         return
+
+    for i, dep in enumerate(dev):
+        req = Requirement(dep)
+        if req.name.lower() == 'pytest':
+            req.specifier &= '>=9.2.0'
+            dev[i] = str(req)
+
     for dep in dev:
         if dep.startswith('pytest-asyncio'):
             break

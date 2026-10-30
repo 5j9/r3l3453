@@ -19,6 +19,7 @@ dependencies = [
     'cookiecutter',
     'tomlkit',
     "applog>=0.1",
+    "packaging>=26.3",
 ]
 
 
@@ -72,8 +73,8 @@ isort.combine-as-imports = true
 
 [tool.pytest]
 addopts = ["--quiet", "--tb=short", "--report-chars=N"]
-truncation_limit_lines = '0'
-truncation_limit_chars = '0'
+truncation_limit_lines = 0
+truncation_limit_chars = 0
 
 [tool.pyrefly]
 infer-with-first-use = false
