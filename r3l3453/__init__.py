@@ -19,6 +19,7 @@ from typing import Annotated, Any
 from applog import logger
 from cyclopts import App, Parameter
 from packaging.requirements import Requirement
+from packaging.version import Version
 from tomlkit import TOMLDocument, parse
 from tomlkit.container import Container
 
@@ -465,6 +466,21 @@ def check_ruff(tool: Container):
         raise SystemExit('ruff check --fix returned non-zero')
 
 
+def set_min_ver(req: Requirement, min_version: str) -> None:
+    existing = max(
+        (
+            Version(s.version)
+            for s in req.specifier
+            if s.operator in ('>=', '>')
+        ),
+        default=None,
+    )
+    if existing is not None and existing >= Version(min_version):
+        return
+
+    req.specifier &= f'>={min_version}'
+
+
 def check_pytest(tool: Container):
     pytest = tool.get('pytest')
 
@@ -492,14 +508,14 @@ def check_pytest(tool: Container):
     for i, req in enumerate(dev_reqs):
         name = req.name
         if name == 'pytest':
-            req.specifier &= '>=9.2.0'
+            set_min_ver(req, '9.2.0')
             dev[i] = str(req)
         if name == 'pytest-asyncio':
             pytest['asyncio_mode'] = 'auto'
             pytest['asyncio_default_test_loop_scope'] = 'session'
             pytest['asyncio_default_fixture_loop_scope'] = 'session'
         if name == 'pytest-aiohutils':
-            req.specifier &= '>=0.23.2'
+            set_min_ver(req, '0.23.2')
             dev[i] = str(req)
 
 
