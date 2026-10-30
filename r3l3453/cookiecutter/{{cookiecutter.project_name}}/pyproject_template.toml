@@ -42,12 +42,11 @@ ignore = [
     'SIM103', # Return the condition directly
     'SIM115', # Use a context manager for opening files
 ]
-unfixable = ["F401"]  # unused-import
 
 [tool.pytest]
 addopts = ["--quiet", "--tb=short", "--report-chars=N"]
-truncation_limit_lines = '0'
-truncation_limit_chars = '0'
+truncation_limit_lines = 0
+truncation_limit_chars = 0
 
 [tool.pyrefly]
 infer-with-first-use = false
